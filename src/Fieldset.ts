@@ -2,7 +2,6 @@ import Client from "./Client";
 import WebSocket from "ws";
 import { parse } from "url";
 
-
 /**
  * Represents an event Field Set
  */
@@ -27,6 +26,27 @@ export interface CompetitionFieldsetState {
     state: "DISABLED" | "DRIVER" | "PROGRAMMING"
 }
 
+export enum AudienceDisplayMode {
+    NONE = 1,
+    LOGO = 6,
+    INTRO = 2,
+    IN_MATCH = 3,
+    SAVED_MATCH_RESULTS = 4,
+    SCHEDULE = 13,
+    RANKINGS = 5,
+    SKILLS_RANKINGS = 9,
+    ALLIANCE_SELECTION = 7,
+    ELIM_BRACKET = 8,
+    SLIDES = 12,
+    INSPECTION = 15,
+};
+
+export enum AudienceDisplayOptions {
+    QF_TO_FINALS = 1,
+    R16_TOP = 2,
+    R16_BOTTOM = 3,
+};
+
 export default class Fieldset {
 
     type: FieldsetType = 1;
@@ -36,7 +56,6 @@ export default class Fieldset {
 
     client: Client;
     ws: WebSocket;
-
 
     // State Data
     state: "DISABLED" | "DRIVER" | "PROGRAMMING" = "DISABLED";
@@ -91,6 +110,18 @@ export default class Fieldset {
             fieldId
         }))
     }
+
+    /**
+     * Set the Audience Display Mode for this fieldset. Some screens have options, which can be
+     * included as an optional parameter
+     */
+    setScreen(screen: AudienceDisplayMode, options?: AudienceDisplayOptions) {
+        this.ws.send(JSON.stringify({
+            action: "setScreen",
+            screen,
+            options
+        }))
+    };
 
     async refresh(): Promise<Fieldset> {
         const response = await this.client.fetch(`/fieldsets/${this.id}/fields`).then(r => r.json());
