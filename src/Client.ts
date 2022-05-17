@@ -8,8 +8,6 @@ import cheerio from "cheerio"
 /**
  * Represents a single connection of a certain type to a TM server
  */
-
-
 export enum AuthenticatedRole {
     ADMINISTRATOR = "admin",
     SCOREKEEPER = "scorekeeper",
@@ -51,7 +49,6 @@ export default class Client {
     divisions: Division[] = [];
     fieldsets: Fieldset[] = [];
 
-
     /**
      * Constructs a client connection to tournament manager
      * @param address The IP Address of Tournament Manager
@@ -63,7 +60,6 @@ export default class Client {
         this.role = role;
         this.password = password;
     }
-
 
     /**
      * Injects the authentication cookie into a request
