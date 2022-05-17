@@ -50,13 +50,8 @@ export default class Fieldset {
 
         // Handle messages
         this.ws.on("message", data => {
-
-
         });
-
-
     }
-
 
     /**
      * Queues a match on the fieldset
@@ -97,7 +92,6 @@ export default class Fieldset {
         }))
     }
 
-
     async refresh(): Promise<Fieldset> {
         const response = await this.client.fetch(`/fieldsets/${this.id}/fields`).then(r => r.json());
         this.fields = response.fields;
@@ -118,6 +112,5 @@ export default class Fieldset {
 
         return Promise.all(fieldsets);
     }
-
 
 }

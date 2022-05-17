@@ -69,5 +69,4 @@ export default class Division {
         return this;
     }
 
-
 }

@@ -20,17 +20,17 @@ export enum AuthenticatedRole {
 export interface TeamSkill {
 
     rank: number;
-    
+
     number: string;
     name: string;
-    
+
     score: number;
 
     programming: {
         high_score: number;
         attempts: number;
     };
-    
+
     driving: {
         high_score: number;
         attempts: number;
@@ -154,10 +154,4 @@ export default class Client {
 
         return skills;
     };
-
-
-
-
-
-
 }
