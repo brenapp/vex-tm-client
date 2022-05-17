@@ -65,7 +65,7 @@ export default class Fieldset {
         this.client = client;
 
         // Create the websocket connection
-        this.ws = new WebSocket(`ws://${parse(client.address).hostname}/fieldsets/${this.id} `, { headers: { "Cookie": client.cookie } });
+        this.ws = new WebSocket(`ws://${parse(client.address).hostname}/fieldsets/${this.id}`, { headers: { "Cookie": client.cookie } });
 
         // Handle messages
         this.ws.on("message", data => {
