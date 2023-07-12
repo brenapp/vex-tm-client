@@ -1,9 +1,6 @@
-import { resolve } from "url"
-import fetch, { RequestInit } from "node-fetch"
 import Division from "./Division";
 import Fieldset from "./Fieldset";
 import cheerio from "cheerio"
-
 
 /**
  * Represents a single connection of a certain type to a TM server
@@ -67,14 +64,14 @@ export default class Client {
      * @param params Fetch parameters
      */
     async fetch(path: string, params: RequestInit = {}) {
+
+        const url = new URL(this.address);
+        url.pathname = path;
+
         return fetch(
-            resolve(this.address, path),
+            url,
             {
                 redirect: "manual",
-                headers: {
-                    "Cookie": this.cookie,
-                    ...params.headers
-                },
                 ...params
             }
         );
@@ -82,17 +79,20 @@ export default class Client {
 
     /** 
      * Connects to TM manager, also parses a list of divisions
-     */
+     **/
     async connect() {
-        const response = await fetch(resolve(this.address, "/admin/login"), {
+
+        const url = new URL(this.address);
+        url.pathname = "/admin/login";
+
+        const response = await fetch(url, {
             method: "POST",
             redirect: "manual",
             headers: {
                 "Content-Type": "application/x-www-form-urlencoded",
                 "Cache-Control": "no-cache",
-                "Connection": "keep-alive"
             },
-            body: `user=${this.role}&password=${this.password}&submit=`
+            body: `user=${this.role}&password=${this.password}&submit=`,
         });
 
         // If the response is 200 then the credentials are incorrect, credentials are correct for 302 redirect
@@ -100,18 +100,16 @@ export default class Client {
             throw new Error("Credentials rejected by Tournament Manager");
         }
 
-
         // Set the authentication cookie
         if (response.headers.has("set-cookie")) {
-            this.cookie = response.headers.get("set-cookie") as string;
+            this.cookie = response.headers.get("Set-Cookie") as string;
         } else {
             throw new Error("Tournament Manager did not grant cookie")
         }
 
         // Get divisions and fieldsets
         this.divisions = await Division.getAll(this);
-        this.fieldsets = await Fieldset.getAll(this);
-
+        // this.fieldsets = await Fieldset.getAll(this);
     }
 
     /**

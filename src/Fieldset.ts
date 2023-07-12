@@ -1,147 +1,167 @@
 import Client from "./Client";
 import WebSocket from "ws";
-import { parse } from "url";
+import EventEmitter from "events";
+import * as protobuf from "protobufjs";
+
+export type V3MatchTupleRound = "NONE" |
+    "PRACTICE" |
+    "QUAL" |
+    "QF" |
+    "SF" |
+    "F" |
+    "R16" |
+    "R32" |
+    "R64" |
+    "R128" |
+    "TOP_N" |
+    "ROUND_ROBIN" |
+    "SKILLS" |
+    "TIMEOUT"
+
+export type V3MatchTupleSkillsType = "NO_SKILLS" | "PROGRAMMING" | "DRIVER";
+
+export type V3MatchTuple = {
+    division?: number
+    round: V3MatchTupleRound;
+    instance?: number;
+    match?: number;
+    session?: number;
+};
+
+type FieldSetNoticeID =
+    "NONE" |
+    "MATCH_STARTED" |
+    "MATCH_STOPPED" |
+    "MATCH_PAUSED" |
+    "MATCH_RESUMED" |
+    "MATCH_ABORTED" |
+    "TIME_UPDATED" |
+    "TIMER_RESET" |
+    "ASSIGN_FIELD_MATCH" |
+    "ASSIGN_SAVED_MATCH" |
+    "DISPLAY_UPDATED" |
+    "MATCH_SCORE_UPDATED" |
+    "AUTO_WINNER_UPDATED" |
+    "FIELD_LIST" |
+    "FIELD_ACTIVATED"
+
+export type FieldSetNotice = {
+    id: FieldSetNoticeID,
+    field_id?: number,
+    match?: V3MatchTuple,
+    remaining?: number,
+    fields?: Record<number, string>
+};
+
+
+type FieldSetEvents = {
+    message: (message: FieldSetNotice) => void;
+    open: () => void;
+    close: () => void;
+} & {
+        [K in FieldSetNoticeID]: (message: FieldSetNotice) => void;
+    }
+
+export default interface Fieldset {
+    on<U extends keyof FieldSetEvents>(event: U, listener: FieldSetEvents[U]): this;
+    once<U extends keyof FieldSetEvents>(
+        event: U,
+        listener: FieldSetEvents[U]
+    ): this;
+    off<U extends keyof FieldSetEvents>(
+        event: U,
+        listener: FieldSetEvents[U]
+    ): this;
+}
 
 /**
  * Represents an event Field Set
- */
+ **/
+export default class Fieldset extends EventEmitter {
 
-export interface Field {
-    id: number;
-    name: string;
-}
-
-export enum FieldsetType {
-    COMPETITION = 1,
-    SKILLS = 2
-}
-
-export interface SkillsFieldsetState {
-    state: "DISABLED" | "DRIVER" | "PROGRAMMING"
-}
-
-export interface CompetitionFieldsetState {
-    fieldId: number,
-    match: string;
-    state: "DISABLED" | "DRIVER" | "PROGRAMMING"
-}
-
-export enum AudienceDisplayMode {
-    NONE = 1,
-    LOGO = 6,
-    INTRO = 2,
-    IN_MATCH = 3,
-    SAVED_MATCH_RESULTS = 4,
-    SCHEDULE = 13,
-    RANKINGS = 5,
-    SKILLS_RANKINGS = 9,
-    ALLIANCE_SELECTION = 7,
-    ELIM_BRACKET = 8,
-    SLIDES = 12,
-    INSPECTION = 15,
-};
-
-export enum AudienceDisplayOptions {
-    QF_TO_FINALS = 1,
-    R16_TOP = 2,
-    R16_BOTTOM = 3,
-};
-
-export default class Fieldset {
-
-    type: FieldsetType = 1;
     id: number;
     name: string = "";
-    fields: Field[] = [];
 
     client: Client;
     ws: WebSocket;
+    fields: Record<number, string> = {};
 
-    // State Data
-    state: "DISABLED" | "DRIVER" | "PROGRAMMING" = "DISABLED";
+    static proto: protobuf.Root | undefined = undefined;
+    static FieldSetNotice: protobuf.Type;
+
+    /**
+     * Thanks to John Holbrook for helping to figure out the handshake
+     * 
+     *      https://gist.github.com/johnholbrook/6c5923ed892648e71c817a859d702f73
+     * 
+     * The handshake is a 128 byte payload:
+     * - 7 bytes of padding (content irrelevant)
+     * - Current UNIX timestamp in seconds since epoch (little-endian). Must be within 300s of TM server's time for handshake to be accepted.
+     * - 117 bytes of padding (content irrelevant)
+     * 
+     **/
+    sendHandshake() {
+        const now = Math.floor(Date.now() / 1000).toString(16);
+
+        // Encode the timestamp in little-endian into the buffer
+        const buffer = new Uint8Array(128);
+        buffer[7] = parseInt(now.slice(6, 8), 16);
+        buffer[8] = parseInt(now.slice(4, 6), 16);
+        buffer[9] = parseInt(now.slice(2, 4), 16);
+        buffer[10] = parseInt(now.slice(0, 2), 16);
+
+        // Send the buffer
+        this.ws.send(buffer);
+    };
+
+    /**
+     * 
+     * @param data Buffer received from TM websocket
+     * @returns 
+     */
+    decodeMessage(data: Buffer) {
+        const magic = data[0] ^ 0xE5;
+        const raw = data.slice(1).map(byte => byte ^ magic);
+        return Fieldset.FieldSetNotice.decode(raw, raw.length);
+    }
 
     constructor(client: Client, id: number) {
+        super()
         this.id = id;
         this.client = client;
 
         // Create the websocket connection
-        this.ws = new WebSocket(`ws://${parse(client.address).hostname}/fieldsets/${this.id}`, { headers: { "Cookie": client.cookie } });
+        const url = new URL(client.address);
+        url.protocol = "ws";
+        url.pathname = `/fieldsets/${this.id}`;
 
-        // Handle messages
-        this.ws.on("message", data => {
+        this.ws = new WebSocket(url, { headers: { "Cookie": client.cookie } });
+
+        // Parse the protobuf
+        if (!Fieldset.proto) {
+            protobuf.load("./proto/fieldset.proto", (err, root) => {
+                Fieldset.proto = root;
+                const type = root?.lookupType("FieldSetNotice");
+                if (!type) {
+                    throw new Error("Cannot load protobufs");
+                };
+                Fieldset.FieldSetNotice = type;
+            });
+        };
+
+        // Send handshake when the connection opens
+        this.ws.addEventListener("open", () => {
+            this.sendHandshake();
+            this.emit("open");
         });
-    }
-
-    /**
-     * Queues a match on the fieldset
-     */
-    queue(match: "Programming" | "Driving" | "PrevMatch" | "Nextmatch") {
-        this.ws.send(JSON.stringify({
-            action: `queue${match}`
-        }));
-    }
-
-    /**
-     * Starts the queued match on the specified field
-     */
-    start(fieldId: number) {
-        this.ws.send(JSON.stringify({
-            action: "start",
-            fieldId
-        }))
-    }
-
-    /**
-     * Aborts a match on the specified field
-     */
-    abort(fieldId: number) {
-        this.ws.send(JSON.stringify({
-            action: "abort",
-            fieldId
-        }))
-    }
-
-    /**
-     * Resets the match on the specified field
-     */
-    reset(fieldId: number) {
-        this.ws.send(JSON.stringify({
-            action: "reset",
-            fieldId
-        }))
-    }
-
-    /**
-     * Set the Audience Display Mode for this fieldset. Some screens have options, which can be
-     * included as an optional parameter
-     */
-    setScreen(screen: AudienceDisplayMode, options?: AudienceDisplayOptions) {
-        this.ws.send(JSON.stringify({
-            action: "setScreen",
-            screen,
-            options
-        }))
-    };
-
-    async refresh(): Promise<Fieldset> {
-        const response = await this.client.fetch(`/fieldsets/${this.id}/fields`).then(r => r.json());
-        this.fields = response.fields;
-
-        return this;
-    }
-
-    static async getAll(client: Client) {
-        const fieldsets: Promise<Fieldset>[] = [];
-        const sets = await client.fetch("/fieldsets").then(resp => resp.json()).then(fs => fs.fieldSets);
-
-        sets.map(({ id, type, name }: { id: number, type: number, name: string }) => {
-            const fieldset = new Fieldset(client, id);
-            fieldset.name = name;
-            fieldset.type = type;
-            fieldsets.push(fieldset.refresh());
+        this.ws.addEventListener("message", event => {
+            const message = this.decodeMessage(event.data).toJSON() as FieldSetNotice;
+            this.emit("message", message);
+            this.emit(message.id, message);
         });
 
-        return Promise.all(fieldsets);
+        this.on("FIELD_LIST", ({ fields }) => {
+            if (fields) this.fields = fields;
+        })
     }
-
 }

@@ -5,7 +5,8 @@
   "main": "out/main.js",
   "name": "vex-tm-client",
   "scripts": {
-    "prepublish": "tsc && tsc -d"
+    "prepublish": "tsc && tsc -d",
+    "build": "tsc && cp -r src/proto out/proto"
   },
   "dependencies": {
     "@types/cheerio": "^0.22.16",
@@ -13,6 +14,7 @@
     "@types/ws": "^7.2.1",
     "cheerio": "^1.0.0-rc.3",
     "node-fetch": "^2.6.0",
+    "protobufjs": "^7.2.4",
     "ws": "^7.2.1"
   },
   "typings": "out/main.d.ts",

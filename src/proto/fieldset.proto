@@ -1,0 +1,63 @@
+syntax = "proto3";
+
+import "matchv3.proto";
+
+message FieldSetNotice {
+    enum NoticeID {
+        NONE                = 0;
+        MATCH_STARTED       = 1;
+        MATCH_STOPPED       = 2;
+        MATCH_PAUSED        = 3;
+        MATCH_RESUMED       = 4;
+        MATCH_ABORTED       = 5;
+        TIME_UPDATED        = 6;
+        TIMER_RESET         = 7;
+        ASSIGN_FIELD_MATCH  = 8;
+        ASSIGN_SAVED_MATCH  = 9;
+        DISPLAY_UPDATED     = 10;
+        MATCH_SCORE_UPDATED = 11;
+        AUTO_WINNER_UPDATED = 12;
+        FIELD_LIST          = 13;
+        FIELD_ACTIVATED     = 14;
+    }
+
+    NoticeID id = 1;
+    int32 field_id = 2;
+    V3MatchTuple match = 3;
+    int32 remaining = 4;
+    map<int32, string> fields = 5;
+}
+
+message FieldSetRequest {
+    enum MatchType {
+        UNSET = 0;
+        REGULAR = 1;
+        DRIVING_SKILLS = 2;
+        AUTON_SKILLS = 3;
+    }
+
+    FieldControlRequest field_control = 1;
+    SetActiveFieldRequest set_active = 2;
+    MatchType queue_match = 3;
+}
+
+message FieldControlRequest {
+    enum ControlID {
+        NONE        = 0;
+        START_MATCH = 1;
+        END_EARLY   = 2;
+        ABORT_MATCH = 3;
+        RESET_TIMER = 4;
+    }
+
+    ControlID id = 1;
+    int32 field_id = 2;
+}
+
+message SetActiveFieldRequest {
+    int32 field_id = 1;
+}
+
+message FieldSets {
+    map<int32, string> field_sets = 1;
+}

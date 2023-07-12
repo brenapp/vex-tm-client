@@ -5,7 +5,6 @@
 import Client from "./Client";
 import cheerio from "cheerio"
 
-
 export interface Team {
     number: string;
     name: string;
@@ -64,7 +63,7 @@ export default class Division {
     }
 
     /**
-     * Needs to be called initally
+     * Needs to be called initially
      */
     async refresh(): Promise<Division> {
 
