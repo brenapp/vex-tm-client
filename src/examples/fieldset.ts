@@ -5,13 +5,13 @@ const client = new Client("http://127.0.0.1", AuthenticatedRole.ADMINISTRATOR, "
 (async function () {
 
     await client.connect();
-    const fieldset = client.fieldsets[1];
+    const fieldset = client.fieldsets[0];
+    const fields = await fieldset.getFields();
 
     console.log(`Controlling fieldset ${fieldset.name}`);
-    for (const [id, name] of Object.entries(fieldset.fields)) {
+    for (const [id, name] of Object.entries(fields)) {
         console.log(`   Field ${id} is ${name}`);
     };
 
-    fieldset.ws.on("message", data => console.log(JSON.parse(data.toString())));
-
+    await fieldset.queueMatch("AUTON_SKILLS", 1);
 })();

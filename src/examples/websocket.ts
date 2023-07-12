@@ -7,12 +7,17 @@ const client = new Client("http://127.0.0.1", AuthenticatedRole.ADMINISTRATOR, "
 
     await client.connect();
     console.log("Connected to TM...");
-    const fieldset = new Fieldset(client, 1);
 
-    fieldset.on("FIELD_ACTIVATED", message => {
-        console.log("Field activated!", message);
+    const fieldset = client.fieldsets[0];
+    const fields = await fieldset.getFields();
+
+    console.log(`${fieldset.name}:`);
+    for (const [id, name] of Object.entries(fields)) {
+        console.log(` - ${name}`);
+    };
+
+    fieldset.on("message", message => {
+        console.log(message);
     });
-    fieldset.on("MATCH_STARTED", message => {
-        console.log("Match Started!", message);
-    });
+
 })();

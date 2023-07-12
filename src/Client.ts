@@ -68,10 +68,14 @@ export default class Client {
         const url = new URL(this.address);
         url.pathname = path;
 
+
         return fetch(
             url,
             {
                 redirect: "manual",
+                headers: {
+                    "Cookie": this.cookie
+                },
                 ...params
             }
         );
@@ -109,7 +113,7 @@ export default class Client {
 
         // Get divisions and fieldsets
         this.divisions = await Division.getAll(this);
-        // this.fieldsets = await Fieldset.getAll(this);
+        this.fieldsets = await Fieldset.getAll(this);
     }
 
     /**
