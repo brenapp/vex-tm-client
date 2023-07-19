@@ -49,7 +49,7 @@ type FieldSetNoticeID =
 
 export type FieldSetNotice = {
     id: FieldSetNoticeID;
-    field_id?: number;
+    fieldId?: number;
     match?: V3MatchTuple;
     remaining?: number;
     fields?: Record<number, string>;
