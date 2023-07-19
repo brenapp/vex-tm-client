@@ -2,6 +2,7 @@ import Client from "./Client";
 import WebSocket from "ws";
 import EventEmitter from "events";
 import * as protobuf from "protobufjs";
+import * as path from "path";
 
 export type V3MatchTupleRound =
     | "NONE"
@@ -238,7 +239,9 @@ export default class Fieldset extends EventEmitter {
                 resolve();
             }
 
-            protobuf.load("./proto/fieldset.proto", (err, root) => {
+            const proto = path.join(__dirname, "proto", "fieldset.proto");
+
+            protobuf.load(proto, (err, root) => {
                 Fieldset.proto = root;
                 const fieldSetNotice = root?.lookupType("FieldSetNotice");
 
