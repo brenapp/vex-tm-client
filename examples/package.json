@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "tsc",
+    "basic": "npm run build && node basic.js"
   },
   "keywords": [],
   "dependencies": {

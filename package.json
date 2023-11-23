@@ -6,7 +6,7 @@
   "name": "vex-tm-client",
   "scripts": {
     "prepare": "npm run build",
-    "build": "tsc && tsc -d"
+    "build": "rimraf out && tsc && tsc -d"
   },
   "dependencies": {
     "@types/cheerio": "^0.22.16",
@@ -19,6 +19,7 @@
   "typings": "out/main.d.ts",
   "version": "1.0.2",
   "devDependencies": {
-    "@types/node": "^20.9.4"
+    "@types/node": "^20.9.4",
+    "rimraf": "^5.0.5"
   }
 }
