@@ -5,7 +5,7 @@
   "main": "out/main.js",
   "name": "vex-tm-client",
   "scripts": {
-    "prepublish": "tsc && tsc -d",
+    "prepare": "npm run build",
     "build": "tsc && tsc -d"
   },
   "dependencies": {
