@@ -1,155 +1,327 @@
-import Division from "./Division";
-import Fieldset from "./Fieldset";
-import cheerio from "cheerio"
+
 
 /**
- * Represents a single connection of a certain type to a TM server
- */
-export enum AuthenticatedRole {
-    ADMINISTRATOR = "admin",
-    SCOREKEEPER = "scorekeeper",
-    INSPECTOR = "inspector",
-    JUDGE = "judge"
-}
+ * Authorization Types
+ **/
 
-export interface TeamSkill {
+import { Division, DivisionData } from "./Division";
+import { Fieldset, FieldsetData } from "./Fieldset";
+import { Team } from "./Team";
 
-    rank: number;
+export enum TMErrors {
 
-    number: string;
-    name: string;
+    // DWAB Authorization Server
+    CredentialsExpired = "Authorization Credentials have expired",
+    CredentialsInvalid = "Authorization Credentials are invalid",
+    CredentialsError = "Could not obtain bearer token from DWAB server",
 
-    score: number;
+    // TM Web Server
+    WebServerError = "Tournament Manager Web Server returned non-200 status code",
 
-    programming: {
-        high_score: number;
-        attempts: number;
-    };
-
-    driving: {
-        high_score: number;
-        attempts: number;
-    }
-
+    // Fieldset WebSocket
+    WebSocketInvalidURL = "Fieldset WebSocket URL is invalid",
+    WebSocketError = "Fieldset WebSocket could not be established",
+    WebSocketClosed = "Fieldset WebSocket is closed",
 };
 
-export default class Client {
+export type RemoteAuthorizationArgs = {
+    client_id: string;
+    client_secret: string;
+    grant_type: "client_credentials";
+    expiration_date: number;
+};
+
+export type ClientArgs = {
+    authorization: RemoteAuthorizationArgs;
+    address: string;
+};
+
+export type BearerToken = {
+    access_token: string;
+    token_type: string;
+    expires_in: number;
+}
+
+export type BearerResult = {
+    success: true;
+    token: BearerToken;
+} | {
+    success: false;
+    error: TMErrors.CredentialsError | TMErrors.CredentialsExpired | TMErrors.CredentialsInvalid;
+    error_details?: unknown;
+};
+
+export type ConnectionResult = {
+    success: true
+} | {
+    success: false;
+    origin: "bearer" | "connection";
+    error: TMErrors;
+    error_details?: unknown;
+}
+
+export type APIResult<T> = {
+    success: true;
+    data: T;
+} | {
+    success: false;
+    error: TMErrors;
+    error_details?: unknown;
+};
+
+export type SkillsRanking = {
+    rank: number;
+    tie: boolean;
+    number: string;
+    totalScore: number;
+    progHighScore: number;
+    progAttempts: number;
+    driverHighScore: number;
+    driverAttempts: number;
+};
+
+
+
+/**
+ * Client connection to Tournament Manager
+ **/
+export class Client {
 
     // Connection data
-    address: string = "http://localhost";
-    role: AuthenticatedRole = AuthenticatedRole.ADMINISTRATOR;
-    password: string = "";
-    cookie: string = "";
+    public connectionArgs: ClientArgs;
 
-
-    // Tournament Data
-    divisions: Division[] = [];
-    fieldsets: Fieldset[] = [];
+    public bearerToken: BearerToken | null = null;
+    public bearerExpiration: number | null = null;
 
     /**
      * Constructs a client connection to tournament manager
-     * @param address The IP Address of Tournament Manager
-     * @param role The role you are connecting as
-     * @param password The password for the specified role
+     * @param connectionArgs Connection Arguments
      */
-    constructor(address: string, role: AuthenticatedRole, password: string) {
-        this.address = address;
-        this.role = role;
-        this.password = password;
+    constructor(args: ClientArgs) {
+        this.connectionArgs = args;
     }
+
+    static CONNECTION_STRING = "https://auth.vextm.dwabtech.com/oauth2/token";
 
     /**
-     * Injects the authentication cookie into a request
-     * @param path Path to request
-     * @param params Fetch parameters
-     */
-    async fetch(path: string, params: RequestInit = {}) {
-
-        const url = new URL(this.address);
-        url.pathname = path;
-
-
-        return fetch(
-            url,
-            {
-                redirect: "manual",
-                headers: {
-                    "Cookie": this.cookie
-                },
-                ...params
-            }
-        );
-    }
-
-    /** 
-     * Connects to TM manager, also parses a list of divisions
+     * Obtains the bearer token from the DWAB authorization server. This bearer token is required to 
+     * connect to the local Tournament Manager instance. 
+     * 
+     * @returns The bearer result, success is true if the token was obtained, false if there was an error
      **/
-    async connect() {
+    async getBearer(): Promise<BearerResult> {
 
-        const url = new URL(this.address);
-        url.pathname = "/admin/login";
+        if (this.connectionArgs.authorization.expiration_date < Date.now()) {
+            return {
+                success: false,
+                error: TMErrors.CredentialsExpired
+            };
+        }
 
-        const response = await fetch(url, {
+        const request = new Request(Client.CONNECTION_STRING, {
             method: "POST",
-            redirect: "manual",
             headers: {
-                "Content-Type": "application/x-www-form-urlencoded",
-                "Cache-Control": "no-cache",
+                "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
             },
-            body: `user=${this.role}&password=${this.password}&submit=`,
+            body: new URLSearchParams({
+                client_id: this.connectionArgs.authorization.client_id,
+                client_secret: this.connectionArgs.authorization.client_secret,
+                grant_type: this.connectionArgs.authorization.grant_type,
+            }),
         });
 
-        // If the response is 200 then the credentials are incorrect, credentials are correct for 302 redirect
-        if (response.status == 200) {
-            throw new Error("Credentials rejected by Tournament Manager");
-        }
+        try {
+            const response = await fetch(request);
 
-        // Set the authentication cookie
-        if (response.headers.has("set-cookie")) {
-            this.cookie = response.headers.get("Set-Cookie") as string;
+            if (response.status !== 200) {
+                const { error } = await response.json();
+
+                switch (error) {
+                    case "invalid_client":
+                        return {
+                            success: false,
+                            error: TMErrors.CredentialsInvalid
+                        };
+                    default:
+                        return {
+                            success: false,
+                            error: TMErrors.CredentialsError
+                        };
+                }
+            }
+
+            const token = await response.json() as BearerToken;
+
+            this.bearerToken = token;
+            this.bearerExpiration = Date.now() + token.expires_in * 1000;
+
+            return {
+                success: true,
+                token
+            };
+
+        } catch (e) {
+            return {
+                success: false,
+                error: TMErrors.CredentialsError,
+                error_details: e
+            };
+        };
+
+    };
+
+    /**
+     * Checks if the bearer token is valid
+     * @returns true if the bearer token is valid, false otherwise
+     */
+    bearerValid(): boolean {
+        return this.bearerExpiration !== null && this.bearerExpiration > Date.now();
+    };
+
+    /**
+     * Ensures that the bearer token is valid, if it is not, it will obtain a new one
+     * @returns The bearer result, success is true if the token was obtained, false if there was an error
+     */
+    async ensureBearer(): Promise<BearerResult> {
+        if (this.bearerValid()) {
+            return Promise.resolve({
+                success: true,
+                token: this.bearerToken!
+            });
         } else {
-            throw new Error("Tournament Manager did not grant cookie")
+            return this.getBearer();
         }
+    };
 
-        // Get divisions and fieldsets
-        this.divisions = await Division.getAll(this);
-        this.fieldsets = await Fieldset.getAll(this);
+    /**
+     * Fetches the divisions from the local Tournament Manager instance
+     * @returns The divisions, success is true if the divisions were obtained, false if there was an error
+     */
+    async getDivisions(): Promise<APIResult<Division[]>> {
+        return this.get<{ divisions: DivisionData[] }>("/api/divisions").then(result => {
+            if (!result.success) {
+                return result;
+            }
+
+            const data = result.data.divisions.map(data => new Division(this, data));
+
+            return {
+                success: true,
+                data
+            };
+        });
     }
 
     /**
-     * Gets current skills rankings
+     * Fetches the fieldsets from the local Tournament Manager instance
+     * @returns The fieldsets, success is true if the fieldsets were obtained, false if there was an error
      */
-    async getSkills() {
+    async getFieldsets(): Promise<APIResult<Fieldset[]>> {
+        return this.get<{ fieldSets: FieldsetData[] }>("/api/fieldsets").then(result => {
+            if (!result.success) {
+                return result;
+            }
 
-        const skills: TeamSkill[] = [];
+            const data = result.data.fieldSets.map(data => new Fieldset(this, data));
 
-        // Get skills ranking page
-        const $ = await this.fetch("/skills/rankings")
-            .then(resp => resp.text())
-            .then(html => cheerio.load(html));
-
-        // Convert to array, and then parse
-        const records = $("table tbody tr").toArray();
-
-        for (const row of records) {
-            const skill: TeamSkill = {
-                rank: parseInt($(row).children("td:nth-child(1)").text()),
-                number: $(row).children("td:nth-child(2)").text(),
-                name: $(row).children("td:nth-child(3)").text(),
-                score: parseInt($(row).children("td:nth-child(4)").text()),
-                programming: {
-                    high_score: parseInt($(row).children("td:nth-child(5)").text()),
-                    attempts: parseInt($(row).children("td:nth-child(6)").text())
-                },
-                driving: {
-                    high_score: parseInt($(row).children("td:nth-child(7)").text()),
-                    attempts: parseInt($(row).children("td:nth-child(8)").text())
-                }
+            return {
+                success: true,
+                data
             };
-
-            skills.push(skill);
-        };
-
-        return skills;
+        });
     };
+
+    /**
+     * Fetches teams in all divisions from the local Tournament Manager instance
+     * @returns The teams, success is true if the teams were obtained, false if there was an error
+     */
+    async getTeams(): Promise<APIResult<Team[]>> {
+        return this.get<Team[]>("/api/teams");
+    }
+
+    /**
+     * Gets the skills rankings from the local Tournament Manager instance
+     * @returns The skills rankings, success is true if the rankings were obtained, false if there was an error
+     */
+    async getSkills(): Promise<APIResult<SkillsRanking[]>> {
+        return this.get<SkillsRanking[]>("/api/skills");
+    }
+
+    /**
+     * Connects to the local Tournament Manager instance
+     * @returns The connection result, success is true if the connection was established, false if there was an error
+     */
+    async connect(): Promise<ConnectionResult> {
+
+        const result = await this.ensureBearer();
+        if (!result.success) {
+            return {
+                success: false,
+                origin: "bearer",
+                error: result.error
+            };
+        }
+
+        const divisionResult = await this.getDivisions();
+        if (!divisionResult.success) {
+            return {
+                success: false,
+                origin: "connection",
+                error: divisionResult.error
+            };
+        }
+
+        const fieldsetResult = await this.getFieldsets();
+        if (!fieldsetResult.success) {
+            return {
+                success: false,
+                origin: "connection",
+                error: fieldsetResult.error
+            };
+        }
+
+        return { success: true };
+    };
+
+
+    async get<T>(url: string): Promise<APIResult<T>> {
+        const result = await this.ensureBearer();
+        if (!result.success) {
+            return {
+                success: false,
+                error: result.error
+            };
+        }
+
+        const path = new URL(url, this.connectionArgs.address);
+
+        const request = new Request(path, {
+            method: "GET",
+            headers: {
+                "Authorization": `Bearer ${result.token.access_token}`,
+                "Content-Type": "application/json"
+            }
+        });
+
+        try {
+            const response = await fetch(request);
+            if (response.status !== 200) {
+                return {
+                    success: false,
+                    error: TMErrors.WebServerError
+                };
+            }
+
+            const data = await response.json() as T;
+
+            return { success: true, data };
+        } catch (e) {
+            return {
+                success: false,
+                error: TMErrors.WebServerError,
+                error_details: e
+            };
+        }
+    };
+
 }

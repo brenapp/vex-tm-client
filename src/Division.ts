@@ -1,135 +1,144 @@
-/**
- * Represents a division at an event
- */
+import { APIResult, Client } from "./Client";
+import { Team } from "./Team";
 
-import Client from "./Client";
-import cheerio from "cheerio"
-
-export interface Team {
-    number: string;
-    name: string;
-    location: string;
-    school: string;
+export enum MatchState {
+    Unplayed = "UNPLAYED",
+    Scored = "SCORED",
 }
 
-export interface Match {
-    name: string;
-    redTeams: string[];
-    blueTeams: string[];
-    redScore: number;
-    blueScore: number;
+export enum MatchRound {
+    None = "NONE",
+    Practice = "PRACTICE",
+    Qualification = "QUAL",
+    Quarterfinal = "QF",
+    Semifinal = "SF",
+    Final = "F",
+    RoundOf16 = "R16",
+    RoundOf32 = "R32",
+    RoundOf64 = "R64",
+    RoundOf128 = "R128",
+    TopN = "TOP_N",
+    RoundRobin = "ROUND_ROBIN",
+    Skills = "SKILLS",
+    Timeout = "TIMEOUT",
+}
+
+export type MatchAlliance = {
+    teams: string[];
+}
+
+export type MatchTuple<R extends MatchRound = MatchRound> = {
+    session: number;
+    division: number;
+    round: R;
+    instance: number;
+    match: number;
 };
 
-export interface Ranking {
+export type Match = {
+    winningAlliance: number;
+    finalScore: number[];
+    matchInfo: {
+        timeScheduled: number;
+        state: MatchState;
+        alliances: MatchAlliance[];
+        matchTuple: MatchTuple<Exclude<MatchRound, MatchRound.None | MatchRound.Skills | MatchRound.Timeout>>;
+    };
+};
+
+export type RankAlliance = {
+    name: string;
+    teams: { number: string; }[];
+};
+
+export type Ranking = {
     rank: number;
-    team: string;
-    teamName: string;
+    tied: false;
+    alliance: RankAlliance[];
+    wins: number;
+    losses: number;
+    ties: number;
     wp: number;
     ap: number;
     sp: number;
-    wlt: string;
+    avgPoints: number;
+    totalPoints: number;
+    highScore: number;
+    numMatches: number;
+    minNumMatches: boolean;
 };
 
-export default class Division {
-
-    name: string;
+export type DivisionData = {
     id: number;
+    name: string;
+};
+
+
+export class Division implements DivisionData {
+
+    id: number;
+    name: string;
+
     client: Client;
 
-    teams: Team[] = [];
-    matches: Match[] = [];
-    rankings: Ranking[] = [];
-
-    constructor(client: Client, id: number) {
-        this.id = id;
-        this.name = `Division ${id}`;
+    constructor(client: Client, data: DivisionData) {
+        this.id = data.id;
+        this.name = data.name;
         this.client = client;
-    }
-
-    // Populates a division list for a specific tournament
-    static async getAll(client: Client) {
-        const divisions: Promise<Division>[] = [];
-        const $ = await client.fetch("/division1/teams")
-            .then(resp => resp.text())
-            .then(html => cheerio.load(html));
-
-
-        $("ul li:first-child ul.dropdown-menu").children().each((index, element) => {
-            const div = new Division(client, index + 1);
-            divisions.push(div.refresh());
-        });
-
-        return Promise.all(divisions);
-    }
+    };
 
     /**
-     * Needs to be called initially
+     * Gets the teams in this division
+     * @returns Teams if successful, error if not
      */
-    async refresh(): Promise<Division> {
+    async getTeams(): Promise<APIResult<Team[]>> {
+        return this.client.get<{ teams: Team[] }>(`/api/teams/${this.id}`).then(result => {
+            if (!result.success) {
+                return result;
+            }
 
-        // Gets team list and division name
-        const $teams = await this.client.fetch(`/division${this.id}/teams`)
-            .then(resp => resp.text())
-            .then(html => cheerio.load(html));
-
-        this.name = $teams("small").text();
-
-        this.matches = [];
-        this.teams = [];
-        this.rankings = [];
-
-        // Populate the teams
-        $teams("table tbody tr").each((index, element) => {
-            const [, number, , name, , location, , school] = (element as cheerio.TagElement).children.map(c => $teams(c).text());
-            this.teams.push({
-                number,
-                name,
-                location,
-                school
-            })
+            return {
+                success: true,
+                data: result.data.teams
+            };
         });
+    };
 
-        // Populate the matches
-        const $matches = await this.client.fetch(`/division${this.id}/matches`)
-            .then(resp => resp.text())
-            .then(html => cheerio.load(html));
+    /**
+     * Gets the matches in this division
+     * @returns Matches if successful, error if not
+     */
+    async getMatches(): Promise<APIResult<Match[]>> {
+        return this.client.get<{ matches: Match[] }>(`/api/matches/${this.id}`).then(result => {
+            if (!result.success) {
+                return result;
+            }
 
-
-        $matches("table tbody tr").each((index, element) => {
-            const columns = (element as cheerio.TagElement).children.map(c => [$matches(c).text().trim(), $matches(c).attr("class")]).filter(([c]) => c != "");
-
-            const name = columns[0][0] ?? "";
-            const teams = columns.slice(1, columns.length - 2);
-
-            const redTeams = teams.filter(([, className]) => className?.includes("red")).map(([team]) => team ?? "");
-            const blueTeams = teams.filter(([, className]) => className?.includes("blue")).map(([team]) => team ?? "");
-
-            const blueScore = parseInt((columns[columns.length - 1][0] ?? ""));
-            const redScore = parseInt((columns[columns.length - 2][0]) ?? "");
-
-            this.matches.push({ name, redTeams, blueTeams, blueScore, redScore });
+            return {
+                success: true,
+                data: result.data.matches
+            };
         });
+    };
 
-        const $rankings = await this.client.fetch(`/division${this.id}/rankings`)
-            .then(resp => resp.text())
-            .then(html => cheerio.load(html));
+    /**
+     * Fetches rankings for this division for the particular round.
+     * 
+     * @param round Round to get rankings for, typically MatchRound.Qualification or MatchRound.TopN
+     * (for IQ finalist rankings)
+     * @returns 
+     */
+    async getRankings(round: MatchRound): Promise<APIResult<Ranking[]>> {
+        return this.client.get<{ rankings: Ranking[] }>(`/api/rankings/${this.id}/${round}`).then(result => {
+            if (!result.success) {
+                return result;
+            }
 
-
-        $rankings("table tbody tr").each((index, element) => {
-            const columns = (element as cheerio.TagElement).children.map(c => $rankings(c).text().trim()).filter((c => c != ""));
-
-            const rank = parseInt(columns[0] ?? "");
-            const team = columns[1] ?? "";
-            const teamName = columns[2] ?? "";
-            const wp = parseFloat(columns[3] ?? "");
-            const ap = parseFloat(columns[4] ?? "");
-            const sp = parseFloat(columns[5] ?? "");
-            const wlt = columns[6] ?? "";
-
-            this.rankings.push({ rank, team, teamName, wp, ap, sp, wlt });
+            return {
+                success: true,
+                data: result.data.rankings
+            };
         });
-
-        return this;
-    }
+    };
 
 }

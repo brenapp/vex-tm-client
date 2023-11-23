@@ -12,11 +12,13 @@
     "@types/cheerio": "^0.22.16",
     "@types/node-fetch": "^2.5.4",
     "@types/ws": "^7.2.1",
-    "cheerio": "^1.0.0-rc.3",
     "node-fetch": "^2.6.0",
     "protobufjs": "^7.2.4",
     "ws": "^7.2.1"
   },
   "typings": "out/main.d.ts",
-  "version": "0.4.4"
+  "version": "0.4.4",
+  "devDependencies": {
+    "@types/node": "^20.9.4"
+  }
 }
