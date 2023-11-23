@@ -148,7 +148,16 @@ export class Fieldset implements FieldsetData, EventTarget {
      * @returns Fields if successful, error if not
      */
     getFields(): Promise<APIResult<Field[]>> {
-        return this.client.get<Field[]>(`/api/fieldsets/${this.id}/fields`);
+        return this.client.get<{ fields: Field[] }>(`/api/fieldsets/${this.id}/fields`).then(result => {
+            if (result.success) {
+                return {
+                    success: true,
+                    data: result.data.fields
+                };
+            } else {
+                return result;
+            }
+        });
     }
 
     /**
