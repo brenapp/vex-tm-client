@@ -1,3 +1,5 @@
 node_modules
 out
-src/examples/credentials.json
+
+examples/*.js
+examples/credentials.json

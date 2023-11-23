@@ -1,11 +1,9 @@
-import * as TM from "../Client";
-import { MatchRound } from "../Division";
-import { FieldsetQueueSkillsType } from "../Fieldset";
+import { Client, FieldsetQueueSkillsType, MatchRound } from "vex-tm-client";
 import authorization from "./credentials.json"
 
 (async function () {
 
-    const client = new TM.Client({
+    const client = new Client({
         address: "http://localhost",
         authorization: {
             client_id: authorization.client_id,

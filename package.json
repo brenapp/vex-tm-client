@@ -6,7 +6,7 @@
   "name": "vex-tm-client",
   "scripts": {
     "prepublish": "tsc && tsc -d",
-    "build": "tsc"
+    "build": "tsc && tsc -d"
   },
   "dependencies": {
     "@types/cheerio": "^0.22.16",
