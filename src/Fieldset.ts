@@ -1,6 +1,7 @@
 import { APIResult, Client, TMErrors } from "./Client";
 import { MatchTuple } from "./Division";
 import WebSocket from "ws";
+import EventEmitter from "events";
 
 export type Field = {
     id: number;
@@ -63,14 +64,6 @@ export type FieldsetEvent =
 
 export type FieldsetEventTypes = FieldsetEvent["type"];
 
-export type FieldsetEventCallbackArgs = {
-    [K in FieldsetEventTypes]: (event: CustomEvent<Extract<FieldsetEvent, { type: K }>>) => void;
-}
-
-export type FieldsetEventCallback<E extends FieldsetEventTypes> = FieldsetEventCallbackArgs[E] | {
-    handleEvent(event: CustomEvent<Extract<FieldsetEvent, { type: E }>>): void;
-};
-
 // Commands
 export type FieldsetCommandStartMatch = {
     cmd: "start";
@@ -127,7 +120,26 @@ export type FieldsetCommand =
 
 export type FieldsetCommandTypes = FieldsetCommand["cmd"];
 
-export class Fieldset implements FieldsetData, EventTarget {
+export type FieldsetEvents = {
+    [K in FieldsetEventTypes]: (event: Extract<FieldsetEvent, { type: K }>) => void;
+};
+
+export interface Fieldset {
+    on<U extends keyof FieldsetEvents>(
+        event: U,
+        listener: FieldsetEvents[U]
+    ): this;
+    once<U extends keyof FieldsetEvents>(
+        event: U,
+        listener: FieldsetEvents[U]
+    ): this;
+    off<U extends keyof FieldsetEvents>(
+        event: U,
+        listener: FieldsetEvents[U]
+    ): this;
+}
+
+export class Fieldset extends EventEmitter implements FieldsetData {
 
     id: number;
     name: string;
@@ -138,6 +150,7 @@ export class Fieldset implements FieldsetData, EventTarget {
     events: EventTarget = new EventTarget();
 
     constructor(client: Client, data: FieldsetData) {
+        super();
         this.id = data.id;
         this.name = data.name;
         this.client = client;
@@ -206,7 +219,7 @@ export class Fieldset implements FieldsetData, EventTarget {
 
                 socket.addEventListener("message", (event) => {
                     const data = JSON.parse(event.data) as FieldsetEvent;
-                    this.dispatchEvent(new CustomEvent(data.type, { detail: data }));
+                    this.emit(data.type, data);
                 });
 
             });
@@ -268,32 +281,95 @@ export class Fieldset implements FieldsetData, EventTarget {
     }
 
     /**
-     * Adds a listener for the specified fieldset event 
-     * @param type Event Type
-     * @param callback Callback Handler
-     * @param options Event Listener Options
-     **/
-    addEventListener<E extends FieldsetEventTypes>(type: E, callback: FieldsetEventCallback<E> | null, options?: boolean | AddEventListenerOptions | undefined): void {
-        return this.events.addEventListener(type, callback as EventListenerOrEventListenerObject | null, options);
-    }
+     * Starts the currently queued match on the given field
+     * @param fieldID Field ID to run the match on
+     * @returns success if the message send was successful, false if there was an error
+     */
+    startMatch(fieldID: number): Promise<APIResult<void>> {
+        return this.send({
+            cmd: "start",
+            fieldID
+        });
+    };
 
     /**
-     * Removes a listener for the specified fieldset event
-     * @param type Event Type
-     * @param callback Callback Handler
-     * @param options Event Listener Options
-     **/
-    removeEventListener<E extends FieldsetEventTypes>(type: E, callback: FieldsetEventCallback<E> | null, options?: boolean | EventListenerOptions | undefined): void {
-        return this.events.removeEventListener(type, callback as EventListenerOrEventListenerObject | null, options);
-    }
+     * Ends the currently running match on the given field
+     * @param fieldID Field ID to end the match on
+     * @returns success if the message send was successful, false if there was an error
+     */
+    endMatchEarly(fieldID: number): Promise<APIResult<void>> {
+        return this.send({
+            cmd: "endEarly",
+            fieldID
+        });
+    };
 
     /**
-     * (Private) Dispatches an event
-     * @param event CustomEvent
-     * @returns boolean
-     **/
-    dispatchEvent(event: Event): boolean {
-        return this.events.dispatchEvent(event);
-    }
+     * Aborts the currently running match on the given field
+     * @param fieldID Field ID to abort the match on
+     * @returns success if the message send was successful, false if there was an error
+     */
+    abortMatch(fieldID: number): Promise<APIResult<void>> {
+        return this.send({
+            cmd: "abort",
+            fieldID
+        });
+    };
+
+    /**
+     * Resets the fieldset timer on the given field
+     * @param fieldID Field ID to reset the timer on
+     * @returns success if the message send was successful, false if there was an error
+     */
+    resetTimer(fieldID: number): Promise<APIResult<void>> {
+        return this.send({
+            cmd: "reset",
+            fieldID
+        });
+    };
+
+    /**
+     * Queues the previous match in this particular round
+     * @returns success if the message send was successful, false if there was an error
+     */
+    queuePreviousMatch(): Promise<APIResult<void>> {
+        return this.send({
+            cmd: "queuePreviousMatch"
+        });
+    };
+
+    /**
+     * Queues the next match in this particular round
+     * @returns success if the message send was successful, false if there was an error
+     */
+    queueNextMatch(): Promise<APIResult<void>> {
+        return this.send({
+            cmd: "queueNextMatch"
+        });
+    };
+
+    /**
+     * Queues a Skills match on the fieldset
+     * @param skillsID Skills type to queue
+     * @returns success if the message send was successful, false if there was an error 
+     */
+    queueSkills(skillsID: FieldsetQueueSkillsType): Promise<APIResult<void>> {
+        return this.send({
+            cmd: "queueSkills",
+            skillsID
+        });
+    };
+
+    /**
+     * Updates the audience display for this fieldset
+     * @param display The display mode to set
+     * @returns success if the message send was successful, false if there was an error
+     */
+    setAudienceDisplay(display: FieldsetAudienceDisplay): Promise<APIResult<void>> {
+        return this.send({
+            cmd: "setScreen",
+            display
+        });
+    };
 
 }

@@ -1,4 +1,4 @@
-import { Client, FieldsetQueueSkillsType, MatchRound } from "vex-tm-client";
+import { Client, FieldsetAudienceDisplay, FieldsetQueueSkillsType, MatchRound } from "vex-tm-client";
 import authorization from "./credentials.json"
 
 (async function () {
@@ -78,21 +78,18 @@ import authorization from "./credentials.json"
         return;
     }
 
-    fieldset.addEventListener("matchStarted", event => console.log(event.detail));
-    fieldset.addEventListener("matchStopped", event => console.log(event.detail));
-    fieldset.addEventListener("fieldActivated", event => console.log(event.detail));
-    fieldset.addEventListener("fieldMatchAssigned", event => console.log(event.detail));
-    fieldset.addEventListener("audienceDisplayChanged", event => console.log(event.detail));
+    fieldset.on("matchStarted", event => console.log(event));
+    fieldset.on("matchStopped", event => console.log(event));
+    fieldset.on("fieldActivated", event => console.log(event));
+    fieldset.on("fieldMatchAssigned", event => console.log(event));
+    fieldset.on("audienceDisplayChanged", event => console.log(event));
 
-    await fieldset.send({
-        cmd: "queueSkills",
-        skillsID: FieldsetQueueSkillsType.Driver
+    await fieldset.queueSkills(FieldsetQueueSkillsType.Driver);
+    await fieldset.startMatch(1);
+
+    fieldset.on("matchStopped", async event => {
+        await fieldset.setAudienceDisplay(FieldsetAudienceDisplay.SkillsRankings);
     });
-
-    await fieldset.send({
-        cmd: "start",
-        fieldID: 1
-    })
 
     process.on("exit", () => {
         fieldset.disconnect();
