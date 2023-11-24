@@ -1,9 +1,3 @@
-
-
-/**
- * Authorization Types
- **/
-
 import { Division, DivisionData } from "./Division";
 import { Fieldset, FieldsetData } from "./Fieldset";
 import { Team } from "./Team";
@@ -34,6 +28,9 @@ export type RemoteAuthorizationArgs = {
 export type ClientArgs = {
     authorization: RemoteAuthorizationArgs;
     address: string;
+
+    // If set, will refetch the bearer token when this many ms are left before expiration
+    bearerMargin?: number;
 };
 
 export type BearerToken = {
@@ -79,8 +76,6 @@ export type SkillsRanking = {
     driverHighScore: number;
     driverAttempts: number;
 };
-
-
 
 /**
  * Client connection to Tournament Manager
@@ -184,6 +179,11 @@ export class Client {
      */
     async ensureBearer(): Promise<BearerResult> {
         if (this.bearerValid()) {
+
+            if (this.bearerExpiration! - Date.now() < (this.connectionArgs.bearerMargin ?? 0)) {
+                return this.getBearer();
+            }
+
             return Promise.resolve({
                 success: true,
                 token: this.bearerToken!
@@ -236,7 +236,16 @@ export class Client {
      * @returns The teams, success is true if the teams were obtained, false if there was an error
      */
     async getTeams(): Promise<APIResult<Team[]>> {
-        return this.get<Team[]>("/api/teams");
+        return this.get<{ teams: Team[] }>("/api/teams").then(result => {
+            if (!result.success) {
+                return result;
+            }
+
+            return {
+                success: true,
+                data: result.data.teams
+            };
+        });
     }
 
     /**
@@ -244,7 +253,15 @@ export class Client {
      * @returns The skills rankings, success is true if the rankings were obtained, false if there was an error
      */
     async getSkills(): Promise<APIResult<SkillsRanking[]>> {
-        return this.get<SkillsRanking[]>("/api/skills");
+        return this.get<{ skillsRankings: SkillsRanking[] }>("/api/skills").then(result => {
+            if (!result.success) {
+                return result;
+            }
+            return {
+                success: true,
+                data: result.data.skillsRankings
+            };
+        });
     }
 
     /**
