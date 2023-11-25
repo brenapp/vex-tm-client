@@ -36,7 +36,7 @@ export type FieldsetEventMatchStopped = {
 };
 
 export enum FieldsetAudienceDisplay {
-    Blank = "Blank",
+    Blank = "BLANK",
     Logo = "LOGO",
     Intro = "INTRO",
     InMatch = "IN_MATCH",
