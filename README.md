@@ -113,14 +113,11 @@ fieldset.addEventListener("audienceDisplayChanged", (event) =>
   console.log(event.detail)
 );
 
-await fieldset.send({
-  cmd: "queueSkills",
-  skillsID: FieldsetQueueSkillsType.Driver,
-});
+await fieldset.queueSkills(FieldsetQueueSkillsType.Driver);
+await fieldset.startMatch(1);
 
-await fieldset.send({
-  cmd: "start",
-  fieldID: 1,
+fieldset.on("matchStopped", async (event) => {
+  await fieldset.setAudienceDisplay(FieldsetAudienceDisplay.SkillsRankings);
 });
 
 process.on("exit", () => {
