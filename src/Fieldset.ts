@@ -164,7 +164,7 @@ export class Fieldset extends EventEmitter implements FieldsetData {
         return this.client.get<{ fields: Field[] }>(`/api/fieldsets/${this.id}/fields`).then(result => {
             if (result.success) {
                 return {
-                    success: true,
+                    ...result,
                     data: result.data.fields
                 };
             } else {
@@ -205,7 +205,8 @@ export class Fieldset extends EventEmitter implements FieldsetData {
                     this.websocket = socket;
                     resolve({
                         success: true,
-                        data: socket
+                        data: socket,
+                        cached: false
                     });
                 });
 
@@ -265,7 +266,8 @@ export class Fieldset extends EventEmitter implements FieldsetData {
                         } else {
                             resolve({
                                 success: true,
-                                data: undefined
+                                data: undefined,
+                                cached: false
                             });
                         }
                     });

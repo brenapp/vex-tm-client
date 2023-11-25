@@ -73,7 +73,6 @@ export type DivisionData = {
     name: string;
 };
 
-
 export class Division implements DivisionData {
 
     id: number;
@@ -98,7 +97,7 @@ export class Division implements DivisionData {
             }
 
             return {
-                success: true,
+                ...result,
                 data: result.data.teams
             };
         });
@@ -115,7 +114,7 @@ export class Division implements DivisionData {
             }
 
             return {
-                success: true,
+                ...result,
                 data: result.data.matches
             };
         });
@@ -126,7 +125,7 @@ export class Division implements DivisionData {
      * 
      * @param round Round to get rankings for, typically MatchRound.Qualification or MatchRound.TopN
      * (for IQ finalist rankings)
-     * @returns 
+     * @returns The rankings array
      */
     async getRankings(round: MatchRound): Promise<APIResult<Ranking[]>> {
         return this.client.get<{ rankings: Ranking[] }>(`/api/rankings/${this.id}/${round}`).then(result => {
@@ -135,8 +134,8 @@ export class Division implements DivisionData {
             }
 
             return {
-                success: true,
-                data: result.data.rankings
+                ...result,
+                data: result.data.rankings,
             };
         });
     };

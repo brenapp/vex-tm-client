@@ -60,6 +60,7 @@ export type ConnectionResult = {
 export type APIResult<T> = {
     success: true;
     data: T;
+    cached: boolean;
 } | {
     success: false;
     error: TMErrors;
@@ -206,7 +207,7 @@ export class Client {
             const data = result.data.divisions.map(data => new Division(this, data));
 
             return {
-                success: true,
+                ...result,
                 data
             };
         });
@@ -225,7 +226,7 @@ export class Client {
             const data = result.data.fieldSets.map(data => new Fieldset(this, data));
 
             return {
-                success: true,
+                ...result,
                 data
             };
         });
@@ -242,7 +243,7 @@ export class Client {
             }
 
             return {
-                success: true,
+                ...result,
                 data: result.data.teams
             };
         });
@@ -258,7 +259,7 @@ export class Client {
                 return result;
             }
             return {
-                success: true,
+                ...result,
                 data: result.data.skillsRankings
             };
         });
@@ -300,8 +301,18 @@ export class Client {
         return { success: true };
     };
 
+    endpointCache: { [key: string]: { data: unknown, lastModified: string } } = {};
 
+    /**
+     * Fetches data from the local Tournament Manager instance. Ensures that a bearer token is
+     * valid, and respects Last-Modified headers.
+     *  
+     * @param url endpoint to fetch from
+     * @returns API Result with data if successful, error if not
+     */
     async get<T>(url: string): Promise<APIResult<T>> {
+
+
         const result = await this.ensureBearer();
         if (!result.success) {
             return {
@@ -321,17 +332,42 @@ export class Client {
         });
 
         try {
-            const response = await fetch(request);
+
+            const lastModified = this.endpointCache[path.toString()]?.lastModified ?? undefined;
+            const headers = new Headers(request.headers);
+
+            if (lastModified) {
+                headers.append("If-Modified-Since", lastModified);
+            }
+
+            const response = await fetch(request, { headers });
+
+            if (response.status === 304) {
+                return {
+                    success: true,
+                    data: this.endpointCache[path.toString()].data as T,
+                    cached: true
+                };
+            };
+
             if (response.status !== 200) {
                 return {
                     success: false,
-                    error: TMErrors.WebServerError
+                    error: TMErrors.WebServerError,
+                    error_details: response
                 };
             }
 
             const data = await response.json() as T;
 
-            return { success: true, data };
+            if (response.headers.get("Last-Modified")) {
+                this.endpointCache[path.toString()] = {
+                    data,
+                    lastModified: response.headers.get("Last-Modified") ?? ""
+                };
+            }
+
+            return { success: true, data, cached: false };
         } catch (e) {
             return {
                 success: false,
