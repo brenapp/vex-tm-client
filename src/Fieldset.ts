@@ -104,7 +104,7 @@ export type FieldsetCommandQueueSkills = {
 }
 
 export type FieldsetCommandSetAudienceDisplay = {
-    cmd: "setScreen";
+    cmd: "setAudienceDisplay";
     display: FieldsetAudienceDisplay;
 };
 
@@ -247,16 +247,18 @@ export class Fieldset extends EventEmitter implements FieldsetData {
      */
     async send(command: FieldsetCommand): Promise<APIResult<void>> {
 
+        const body = JSON.stringify(command);
+        console.log("TM <== Switcher", command);
+
         try {
             return new Promise((resolve) => {
-
                 if (!this.websocket) {
                     resolve({
                         success: false,
                         error: TMErrors.WebSocketClosed
                     });
                 } else {
-                    this.websocket.send(JSON.stringify(command), (error) => {
+                    this.websocket.send(body, (error) => {
                         if (error) {
                             resolve({
                                 success: false,
@@ -369,7 +371,7 @@ export class Fieldset extends EventEmitter implements FieldsetData {
      */
     setAudienceDisplay(display: FieldsetAudienceDisplay): Promise<APIResult<void>> {
         return this.send({
-            cmd: "setScreen",
+            cmd: "setAudienceDisplay",
             display
         });
     };

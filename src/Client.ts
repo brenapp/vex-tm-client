@@ -311,8 +311,6 @@ export class Client {
      * @returns API Result with data if successful, error if not
      */
     async get<T>(url: string): Promise<APIResult<T>> {
-
-
         const result = await this.ensureBearer();
         if (!result.success) {
             return {

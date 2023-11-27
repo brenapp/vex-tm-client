@@ -24,7 +24,9 @@ export enum MatchRound {
 }
 
 export type MatchAlliance = {
-    teams: string[];
+    teams: {
+        number: string;
+    }[]
 }
 
 export type MatchTuple<R extends MatchRound = MatchRound> = {
