@@ -6,7 +6,8 @@
   "scripts": {
     "build": "tsc",
     "basic": "npm run build && node basic.js",
-    "cache": "npm run build && node cache.js"
+    "cache": "npm run build && node cache.js",
+    "display": "npm run build && node display.js"
   },
   "keywords": [],
   "dependencies": {

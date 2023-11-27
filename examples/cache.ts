@@ -13,15 +13,14 @@ import authorization from "./credentials.json"
         }
     });
 
-    // Will only make one request to the server
-    let teams = await client.getTeams();
+    // Will only make one request to the server    
     for (let i = 0; i < 100; i++) {
         const start = performance.now();
-        teams = await client.getTeams();
+        const teams = await client.getTeams();
         const end = performance.now();
 
         if (teams.success) {
-            console.log(`Took ${end - start}ms to fetch ${teams.data.length} teams`);
+            console.log(`Took ${end - start}ms to fetch ${teams.data.length} teams (cached: ${teams.cached})`);
         } else {
             console.error(teams);
         }
