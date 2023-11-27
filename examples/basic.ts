@@ -1,4 +1,4 @@
-import { Client, FieldsetAudienceDisplay, FieldsetQueueSkillsType, MatchRound } from "vex-tm-client";
+import { Client, FieldsetAudienceDisplay, FieldsetQueueSkillsType, MatchRound } from "vex-tm-client"
 import authorization from "./credentials.json"
 
 (async function () {
@@ -14,10 +14,12 @@ import authorization from "./credentials.json"
     });
 
     const result = await client.connect();
+    console.log(client.bearerToken);
     if (!result.success) {
         console.error("client", result);
         return;
     }
+
 
     const divisions = await client.getDivisions();
     if (!divisions.success) {

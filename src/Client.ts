@@ -5,12 +5,13 @@ import { Team } from "./Team";
 export enum TMErrors {
 
     // DWAB Authorization Server
-    CredentialsExpired = "Authorization Credentials have expired",
-    CredentialsInvalid = "Authorization Credentials are invalid",
-    CredentialsError = "Could not obtain bearer token from DWAB server",
+    CredentialsExpired = "DWAB Third-Party Authorization Credentials have expired",
+    CredentialsInvalid = "DWAB Third-Party Authorization Credentials are invalid",
+    CredentialsError = "Could not a bearer token from DWAB server",
 
     // TM Web Server
     WebServerError = "Tournament Manager Web Server returned non-200 status code",
+    WebServerNotEnabled = "The Tournament Manager API is not enabled",
 
     // Fieldset WebSocket
     WebSocketInvalidURL = "Fieldset WebSocket URL is invalid",
@@ -285,7 +286,8 @@ export class Client {
             return {
                 success: false,
                 origin: "connection",
-                error: divisionResult.error
+                error: divisionResult.error,
+                error_details: divisionResult.error_details
             };
         }
 
@@ -294,7 +296,8 @@ export class Client {
             return {
                 success: false,
                 origin: "connection",
-                error: fieldsetResult.error
+                error: fieldsetResult.error,
+                error_details: fieldsetResult.error_details
             };
         }
 
@@ -340,6 +343,15 @@ export class Client {
 
             const response = await fetch(request, { headers });
 
+            if (response.status === 503) {
+                return {
+                    success: false,
+                    error: TMErrors.WebServerNotEnabled,
+                    error_details: await response.json()
+                }
+            }
+
+
             if (response.status === 304) {
                 return {
                     success: true,
@@ -352,7 +364,7 @@ export class Client {
                 return {
                     success: false,
                     error: TMErrors.WebServerError,
-                    error_details: response
+                    error_details: await response.json()
                 };
             }
 
