@@ -11,6 +11,7 @@ export enum TMErrors {
 
     // TM Web Server
     WebServerError = "Tournament Manager Web Server returned non-200 status code",
+    WebServerConnectionError = "Could not connect to Tournament Manager Web Server",
     WebServerNotEnabled = "The Tournament Manager API is not enabled",
 
     // Fieldset WebSocket
@@ -381,7 +382,7 @@ export class Client {
         } catch (e) {
             return {
                 success: false,
-                error: TMErrors.WebServerError,
+                error: TMErrors.WebServerConnectionError,
                 error_details: e
             };
         }
