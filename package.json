@@ -17,7 +17,7 @@
     "ws": "^7.2.1"
   },
   "typings": "out/main.d.ts",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "devDependencies": {
     "@types/node": "^20.9.4",
     "rimraf": "^5.0.5"
