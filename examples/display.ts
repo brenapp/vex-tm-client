@@ -1,6 +1,10 @@
 import { Client, FieldsetAudienceDisplay, FieldsetQueueSkillsType } from "vex-tm-client";
 import authorization from "./credentials.json"
 
+function timeout(ms: number) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 (async function () {
 
     const client = new Client({
@@ -31,21 +35,11 @@ import authorization from "./credentials.json"
     const fieldset = fieldsets.data[0];
 
     await fieldset.connect();
+    await timeout(2000);
 
-    await fieldset.queueSkills(FieldsetQueueSkillsType.Driver);
-    await fieldset.startMatch(1);
-
-    fieldset.websocket?.addEventListener("message", event => {
-        console.log("TM ==> Switcher", JSON.parse(event.data));
-    });
-
-    fieldset.websocket?.addEventListener("close", event => {
-        console.log("TM ==> Switcher", "Connection closed");
-    });
-
-
-    setTimeout(async () => {
-        await fieldset.setAudienceDisplay(FieldsetAudienceDisplay.Blank);
-    }, 2000);
+    for (const mode of Object.values(FieldsetAudienceDisplay)) {
+        await fieldset.setAudienceDisplay(mode);
+        await timeout(2000);
+    }
 
 })();
