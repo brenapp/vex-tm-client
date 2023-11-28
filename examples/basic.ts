@@ -84,15 +84,4 @@ import authorization from "./credentials.json"
     fieldset.on("fieldMatchAssigned", event => console.log(event));
     fieldset.on("audienceDisplayChanged", event => console.log(event));
 
-    await fieldset.queueSkills(FieldsetQueueSkillsType.Driver);
-    await fieldset.startMatch(1);
-
-    fieldset.on("matchStopped", async event => {
-        await fieldset.setAudienceDisplay(FieldsetAudienceDisplay.SkillsRankings);
-    });
-
-    process.on("exit", () => {
-        fieldset.disconnect();
-    })
-
 })();
