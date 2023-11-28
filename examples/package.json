@@ -7,7 +7,8 @@
     "build": "tsc",
     "basic": "npm run build && node basic.js",
     "cache": "npm run build && node cache.js",
-    "display": "npm run build && node display.js"
+    "display": "npm run build && node display.js",
+    "state": "npm run build && node state.js"
   },
   "keywords": [],
   "dependencies": {
