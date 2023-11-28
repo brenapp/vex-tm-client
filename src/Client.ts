@@ -94,7 +94,7 @@ export class Client {
     /**
      * Constructs a client connection to tournament manager
      * @param connectionArgs Connection Arguments
-     */
+     **/
     constructor(args: ClientArgs) {
         this.connectionArgs = args;
     }
@@ -171,7 +171,7 @@ export class Client {
     /**
      * Checks if the bearer token is valid
      * @returns true if the bearer token is valid, false otherwise
-     */
+     **/
     bearerValid(): boolean {
         return this.bearerExpiration !== null && this.bearerExpiration > Date.now();
     };
@@ -179,7 +179,7 @@ export class Client {
     /**
      * Ensures that the bearer token is valid, if it is not, it will obtain a new one
      * @returns The bearer result, success is true if the token was obtained, false if there was an error
-     */
+     **/
     async ensureBearer(): Promise<BearerResult> {
         if (this.bearerValid()) {
 
@@ -199,7 +199,7 @@ export class Client {
     /**
      * Fetches the divisions from the local Tournament Manager instance
      * @returns The divisions, success is true if the divisions were obtained, false if there was an error
-     */
+     **/
     async getDivisions(): Promise<APIResult<Division[]>> {
         return this.get<{ divisions: DivisionData[] }>("/api/divisions").then(result => {
             if (!result.success) {
@@ -218,7 +218,7 @@ export class Client {
     /**
      * Fetches the fieldsets from the local Tournament Manager instance
      * @returns The fieldsets, success is true if the fieldsets were obtained, false if there was an error
-     */
+     **/
     async getFieldsets(): Promise<APIResult<Fieldset[]>> {
         return this.get<{ fieldSets: FieldsetData[] }>("/api/fieldsets").then(result => {
             if (!result.success) {
@@ -237,7 +237,7 @@ export class Client {
     /**
      * Fetches teams in all divisions from the local Tournament Manager instance
      * @returns The teams, success is true if the teams were obtained, false if there was an error
-     */
+     **/
     async getTeams(): Promise<APIResult<Team[]>> {
         return this.get<{ teams: Team[] }>("/api/teams").then(result => {
             if (!result.success) {
@@ -254,7 +254,7 @@ export class Client {
     /**
      * Gets the skills rankings from the local Tournament Manager instance
      * @returns The skills rankings, success is true if the rankings were obtained, false if there was an error
-     */
+     **/
     async getSkills(): Promise<APIResult<SkillsRanking[]>> {
         return this.get<{ skillsRankings: SkillsRanking[] }>("/api/skills").then(result => {
             if (!result.success) {
@@ -270,7 +270,7 @@ export class Client {
     /**
      * Connects to the local Tournament Manager instance
      * @returns The connection result, success is true if the connection was established, false if there was an error
-     */
+     **/
     async connect(): Promise<ConnectionResult> {
 
         const result = await this.ensureBearer();
@@ -313,7 +313,7 @@ export class Client {
      *  
      * @param url endpoint to fetch from
      * @returns API Result with data if successful, error if not
-     */
+     **/
     async get<T>(url: string): Promise<APIResult<T>> {
         const result = await this.ensureBearer();
         if (!result.success) {

@@ -159,7 +159,7 @@ export class Fieldset extends EventEmitter implements FieldsetData {
     /**
      * Gets the fields associated with this fieldset
      * @returns Fields if successful, error if not
-     */
+     **/
     getFields(): Promise<APIResult<Field[]>> {
         return this.client.get<{ fields: Field[] }>(`/api/fieldsets/${this.id}/fields`).then(result => {
             if (result.success) {
@@ -176,7 +176,7 @@ export class Fieldset extends EventEmitter implements FieldsetData {
     /**
      * Connects to the fieldset
      * @returns API result, success is true if the connection was successful, false if there was an error
-     */
+     **/
     async connect(): Promise<APIResult<WebSocket>> {
 
         const path = new URL(`/api/fieldsets/${this.id}`, this.client.connectionArgs.address);
@@ -244,7 +244,7 @@ export class Fieldset extends EventEmitter implements FieldsetData {
      * Sends a command to the fieldset
      * @param command The fieldset command to send
      * @returns API result, success is true if the command was sent, false if there was an error
-     */
+     **/
     async send(command: FieldsetCommand): Promise<APIResult<void>> {
 
         const body = JSON.stringify(command);
@@ -288,7 +288,7 @@ export class Fieldset extends EventEmitter implements FieldsetData {
      * Starts the currently queued match on the given field
      * @param fieldID Field ID to run the match on
      * @returns success if the message send was successful, false if there was an error
-     */
+     **/
     startMatch(fieldID: number): Promise<APIResult<void>> {
         return this.send({
             cmd: "start",
@@ -300,7 +300,7 @@ export class Fieldset extends EventEmitter implements FieldsetData {
      * Ends the currently running match on the given field
      * @param fieldID Field ID to end the match on
      * @returns success if the message send was successful, false if there was an error
-     */
+     **/
     endMatchEarly(fieldID: number): Promise<APIResult<void>> {
         return this.send({
             cmd: "endEarly",
@@ -312,7 +312,7 @@ export class Fieldset extends EventEmitter implements FieldsetData {
      * Aborts the currently running match on the given field
      * @param fieldID Field ID to abort the match on
      * @returns success if the message send was successful, false if there was an error
-     */
+     **/
     abortMatch(fieldID: number): Promise<APIResult<void>> {
         return this.send({
             cmd: "abort",
@@ -324,7 +324,7 @@ export class Fieldset extends EventEmitter implements FieldsetData {
      * Resets the fieldset timer on the given field
      * @param fieldID Field ID to reset the timer on
      * @returns success if the message send was successful, false if there was an error
-     */
+     **/
     resetTimer(fieldID: number): Promise<APIResult<void>> {
         return this.send({
             cmd: "reset",
@@ -335,7 +335,7 @@ export class Fieldset extends EventEmitter implements FieldsetData {
     /**
      * Queues the previous match in this particular round
      * @returns success if the message send was successful, false if there was an error
-     */
+     **/
     queuePreviousMatch(): Promise<APIResult<void>> {
         return this.send({
             cmd: "queuePreviousMatch"
@@ -345,7 +345,7 @@ export class Fieldset extends EventEmitter implements FieldsetData {
     /**
      * Queues the next match in this particular round
      * @returns success if the message send was successful, false if there was an error
-     */
+     **/
     queueNextMatch(): Promise<APIResult<void>> {
         return this.send({
             cmd: "queueNextMatch"
@@ -356,7 +356,7 @@ export class Fieldset extends EventEmitter implements FieldsetData {
      * Queues a Skills match on the fieldset
      * @param skillsID Skills type to queue
      * @returns success if the message send was successful, false if there was an error 
-     */
+     **/
     queueSkills(skillsID: FieldsetQueueSkillsType): Promise<APIResult<void>> {
         return this.send({
             cmd: "queueSkills",
@@ -368,7 +368,7 @@ export class Fieldset extends EventEmitter implements FieldsetData {
      * Updates the audience display for this fieldset
      * @param display The display mode to set
      * @returns success if the message send was successful, false if there was an error
-     */
+     **/
     setAudienceDisplay(display: FieldsetAudienceDisplay): Promise<APIResult<void>> {
         return this.send({
             cmd: "setAudienceDisplay",

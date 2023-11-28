@@ -13,6 +13,9 @@ import authorization from "./credentials.json"
         }
     });
 
+    const event = await client.get("/api/event");
+    console.log(event);
+
     const result = await client.connect();
     if (!result.success) {
         console.error("client", result);

@@ -91,7 +91,7 @@ export class Division implements DivisionData {
     /**
      * Gets the teams in this division
      * @returns Teams if successful, error if not
-     */
+     **/
     async getTeams(): Promise<APIResult<Team[]>> {
         return this.client.get<{ teams: Team[] }>(`/api/teams/${this.id}`).then(result => {
             if (!result.success) {
@@ -108,7 +108,7 @@ export class Division implements DivisionData {
     /**
      * Gets the matches in this division
      * @returns Matches if successful, error if not
-     */
+     **/
     async getMatches(): Promise<APIResult<Match[]>> {
         return this.client.get<{ matches: Match[] }>(`/api/matches/${this.id}`).then(result => {
             if (!result.success) {
@@ -128,7 +128,7 @@ export class Division implements DivisionData {
      * @param round Round to get rankings for, typically MatchRound.Qualification or MatchRound.TopN
      * (for IQ finalist rankings)
      * @returns The rankings array
-     */
+     **/
     async getRankings(round: MatchRound): Promise<APIResult<Ranking[]>> {
         return this.client.get<{ rankings: Ranking[] }>(`/api/rankings/${this.id}/${round}`).then(result => {
             if (!result.success) {
