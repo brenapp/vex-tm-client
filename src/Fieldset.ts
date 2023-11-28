@@ -1,5 +1,5 @@
 import { APIResult, Client, TMErrors } from "./Client";
-import { MatchTuple } from "./Division";
+import { MatchTuple } from "./Match";
 import WebSocket from "ws";
 import EventEmitter from "events";
 
@@ -54,6 +54,7 @@ export type FieldsetEventAudienceDisplayChanged = {
     type: "audienceDisplayChanged";
     display: FieldsetAudienceDisplay;
 };
+export type FieldsetEventTypes = FieldsetEvent["type"];
 
 export type FieldsetEvent =
     FieldsetEventFieldMatchAssigned |
@@ -62,7 +63,6 @@ export type FieldsetEvent =
     FieldsetEventMatchStopped |
     FieldsetEventAudienceDisplayChanged;
 
-export type FieldsetEventTypes = FieldsetEvent["type"];
 
 // Commands
 export type FieldsetCommandStartMatch = {
@@ -120,9 +120,44 @@ export type FieldsetCommand =
 
 export type FieldsetCommandTypes = FieldsetCommand["cmd"];
 
+// Fieldset State
+export enum FieldsetActiveMatchType {
+    None,
+    Timeout,
+    Match
+}
+
+export enum FieldsetQueueState {
+    Unplayed,
+    Running,
+    Stopped
+}
+
+export type FieldsetMatch = {
+    type: FieldsetActiveMatchType.None;
+} | {
+    type: FieldsetActiveMatchType.Timeout;
+    state: FieldsetQueueState;
+    fieldID: number;
+    active: boolean;
+} | {
+    type: FieldsetActiveMatchType.Match;
+    state: FieldsetQueueState;
+    match: MatchTuple;
+    fieldID: number;
+    active: boolean;
+}
+
+export type FieldsetState = {
+    match: FieldsetMatch;
+    audienceDisplay: FieldsetAudienceDisplay;
+};
+
 export type FieldsetEvents = {
     [K in FieldsetEventTypes]: (event: Extract<FieldsetEvent, { type: K }>) => void;
-};
+} & {
+    message: (event: FieldsetEvent) => void;
+}
 
 export interface Fieldset {
     on<U extends keyof FieldsetEvents>(
@@ -149,6 +184,13 @@ export class Fieldset extends EventEmitter implements FieldsetData {
 
     events: EventTarget = new EventTarget();
 
+    state: FieldsetState = {
+        match: {
+            type: FieldsetActiveMatchType.None
+        },
+        audienceDisplay: FieldsetAudienceDisplay.Blank
+    };
+
     constructor(client: Client, data: FieldsetData) {
         super();
         this.id = data.id;
@@ -172,6 +214,93 @@ export class Fieldset extends EventEmitter implements FieldsetData {
             }
         });
     }
+
+    /**
+     * Internal - Updates fieldset state based on an event
+     * @param event Event State
+     */
+    updateState(event: FieldsetEvent) {
+        switch (event.type) {
+            case "audienceDisplayChanged": {
+                this.state.audienceDisplay = event.display;
+                break;
+            };
+
+            case "fieldMatchAssigned": {
+                const isNone = Object.keys(event.match).length === 0 && Object.is(null, event.fieldID);
+
+                // Technically, this could be a timeout, but we don't know until it starts
+                if (isNone) {
+                    this.state.match = {
+                        type: FieldsetActiveMatchType.None
+                    };
+                } else {
+                    const isTimeout = Object.keys(event.match).length === 0;
+                    this.state.match = {
+                        type: isTimeout ? FieldsetActiveMatchType.Timeout : FieldsetActiveMatchType.Match,
+                        match: event.match,
+                        fieldID: event.fieldID,
+                        state: FieldsetQueueState.Unplayed,
+                        active: false
+                    }
+                }
+                break;
+            };
+
+            case "fieldActivated": {
+                switch (this.state.match.type) {
+                    case FieldsetActiveMatchType.None: {
+                        this.state.match = {
+                            type: FieldsetActiveMatchType.Timeout,
+                            state: FieldsetQueueState.Unplayed,
+                            fieldID: event.fieldID,
+                            active: true
+                        }
+                        break;
+                    };
+                    case FieldsetActiveMatchType.Timeout:
+                    case FieldsetActiveMatchType.Match: {
+                        this.state.match.active = true;
+                        this.state.match.fieldID = event.fieldID;
+                        break;
+                    }
+                };
+                break;
+            };
+
+            case "matchStarted": {
+                switch (this.state.match.type) {
+                    case FieldsetActiveMatchType.None: {
+                        this.state.match = {
+                            type: FieldsetActiveMatchType.Timeout,
+                            state: FieldsetQueueState.Running,
+                            fieldID: event.fieldID,
+                            active: false
+                        }
+                        break;
+                    };
+                    case FieldsetActiveMatchType.Timeout:
+                    case FieldsetActiveMatchType.Match: {
+                        this.state.match.state = FieldsetQueueState.Running;
+                        this.state.match.fieldID = event.fieldID;
+                        break;
+                    }
+                }
+                break;
+            };
+
+            case "matchStopped": {
+                switch (this.state.match.type) {
+                    case FieldsetActiveMatchType.Timeout:
+                    case FieldsetActiveMatchType.Match: {
+                        this.state.match.state = FieldsetQueueState.Stopped;
+                        break;
+                    }
+                }
+                break;
+            };
+        }
+    };
 
     /**
      * Connects to the fieldset
@@ -220,7 +349,9 @@ export class Fieldset extends EventEmitter implements FieldsetData {
 
                 socket.addEventListener("message", (event) => {
                     const data = JSON.parse(event.data) as FieldsetEvent;
+                    this.updateState(data);
                     this.emit(data.type, data);
+                    this.emit("message", data);
                 });
 
             });
@@ -248,7 +379,6 @@ export class Fieldset extends EventEmitter implements FieldsetData {
     async send(command: FieldsetCommand): Promise<APIResult<void>> {
 
         const body = JSON.stringify(command);
-        console.log("TM <== Switcher", command);
 
         try {
             return new Promise((resolve) => {
