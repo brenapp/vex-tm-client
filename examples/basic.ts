@@ -19,6 +19,13 @@ import authorization from "./credentials.json"
         console.error("client", result);
         return;
     }
+    const event = await client.getEventInfo();
+    if (!event.success) {
+        console.error("event", event);
+        return;
+    }
+
+    console.log(event);
 
 
     const divisions = await client.getDivisions();
@@ -37,25 +44,16 @@ import authorization from "./credentials.json"
         return;
     }
 
-    console.log(teams);
-
     const matches = await division.getMatches();
     if (!matches.success) {
         console.error("matches", matches);
         return;
     }
-
-    for (const match of matches.data) {
-        console.log(match);
-    }
-
     const rankings = await division.getRankings(MatchRound.Qualification);
     if (!rankings.success) {
         console.error("rankings", rankings);
         return;
     }
-
-    console.log(rankings);
 
     const fieldsets = await client.getFieldsets();
     if (!fieldsets.success) {

@@ -80,6 +80,11 @@ export type SkillsRanking = {
     driverAttempts: number;
 };
 
+export type EventInfo = {
+    code: string;
+    name: string;
+};
+
 /**
  * Client connection to Tournament Manager
  **/
@@ -263,6 +268,23 @@ export class Client {
             return {
                 ...result,
                 data: result.data.skillsRankings
+            };
+        });
+    }
+
+    /**
+     * Gets information about about the event from the local Tournament Manager instance
+     * @returns The event info, success is true if the info was obtained, false if there was an error
+     **/
+    async getEventInfo(): Promise<APIResult<EventInfo>> {
+        return this.get<{ event: EventInfo }>("/api/event").then(result => {
+            if (!result.success) {
+                return result;
+            }
+
+            return {
+                ...result,
+                data: result.data.event
             };
         });
     }
