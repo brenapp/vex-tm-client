@@ -308,8 +308,8 @@ export class Fieldset extends EventEmitter implements FieldsetData {
      **/
     async connect(): Promise<APIResult<WebSocket>> {
 
-        const path = new URL(`/api/fieldsets/${this.id}`, this.client.connectionArgs.address);
-        path.protocol = "ws";
+        const url = new URL(`/api/fieldsets/${this.id}`, this.client.connectionArgs.address);
+        url.protocol = "ws";
 
         const result = await this.client.ensureBearer();
         if (!result.success) {
@@ -319,14 +319,13 @@ export class Fieldset extends EventEmitter implements FieldsetData {
             };
         }
 
-        const token = result.token.access_token;
-
         try {
-            const socket = new WebSocket(path, {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            });
+            const authHeaders = this.client.getAuthorizationHeaders(url);
+
+            let headers: Record<string, string> = {};
+            authHeaders.forEach((value, key) => headers[key] = value);
+
+            const socket = new WebSocket(url, { headers });
 
             return new Promise((resolve) => {
 

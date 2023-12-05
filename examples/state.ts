@@ -11,7 +11,8 @@ import { FieldsetEvent } from "../out/Fieldset";
             client_secret: authorization.client_secret,
             grant_type: "client_credentials",
             expiration_date: authorization.expiration_date
-        }
+        },
+        clientAPIKey: authorization.client_api_key
     });
 
     const result = await client.connect();

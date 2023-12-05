@@ -125,6 +125,20 @@ process.on("exit", () => {
 });
 ```
 
+## Use In the Browser
+
+This library is primarily designed for use in Node.js, however, it is possible to run in the browser
+if you polyfill the following Node libraries using their bundler of choice:
+
+```
+events
+crypto
+```
+
+Polyfill Tools:
+
+- Vite: https://www.npmjs.com/package/vite-plugin-node-polyfills
+
 ## Disclaimer
 
 This library is not developed or supported by DWAB, the REC Foundation, or VEX Robotics. Developers

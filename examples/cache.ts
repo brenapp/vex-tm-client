@@ -10,7 +10,8 @@ import authorization from "./credentials.json"
             client_secret: authorization.client_secret,
             grant_type: "client_credentials",
             expiration_date: authorization.expiration_date
-        }
+        },
+        clientAPIKey: authorization.client_api_key
     });
 
     // Will only make one request to the server    

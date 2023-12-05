@@ -14,7 +14,8 @@ function timeout(ms: number) {
             client_secret: authorization.client_secret,
             grant_type: "client_credentials",
             expiration_date: authorization.expiration_date
-        }
+        },
+        clientAPIKey: authorization.client_api_key
     });
 
     const event = await client.get("/api/event");
