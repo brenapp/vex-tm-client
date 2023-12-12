@@ -86,7 +86,7 @@ export type FieldsetCommandResetTimer = {
 }
 
 export type FieldsetCommandQueuePreviousMatch = {
-    cmd: "queuePreviousMatch";
+    cmd: "queuePrevMatch";
 }
 
 export type FieldsetCommandQueueNextMatch = {
@@ -467,7 +467,7 @@ export class Fieldset extends EventEmitter implements FieldsetData {
      **/
     queuePreviousMatch(): Promise<APIResult<void>> {
         return this.send({
-            cmd: "queuePreviousMatch"
+            cmd: "queuePrevMatch"
         });
     };
 
