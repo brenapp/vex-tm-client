@@ -127,8 +127,8 @@ process.on("exit", () => {
 
 ## Use In the Browser
 
-This library is primarily designed for use in Node.js, however, it is possible to run in the browser
-if you polyfill the following Node libraries using their bundler of choice:
+This library is primarily designed for use in Node.js. However, it is possible to run in the browser
+if you polyfill the following Node libraries:
 
 ```
 events
