@@ -8,7 +8,7 @@ export enum TMErrors {
     // DWAB Authorization Server
     CredentialsExpired = "DWAB Third-Party Authorization Credentials have expired",
     CredentialsInvalid = "DWAB Third-Party Authorization Credentials are invalid",
-    CredentialsError = "Could not a bearer token from DWAB server",
+    CredentialsError = "Could obtain not a bearer token from DWAB server",
 
     // TM Web Server
     WebServerError = "Tournament Manager Web Server returned non-200 status code",
