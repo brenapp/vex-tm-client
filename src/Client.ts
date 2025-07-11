@@ -1,7 +1,8 @@
-import { Division, DivisionData } from "./Division";
-import { Fieldset, FieldsetData } from "./Fieldset";
-import { Team } from "./Team";
+import { Division, DivisionData } from "./Division.js";
+import { Fieldset, FieldsetData } from "./Fieldset.js";
+import { Team } from "./Team.js";
 import { createHmac } from "crypto";
+import fetch, { Headers, HeadersInit } from "node-fetch";
 
 export enum TMErrors {
     // DWAB Authorization Server
@@ -146,10 +147,23 @@ export class Client {
         });
 
         try {
-            const response = await fetch(request);
+            const response = await fetch(Client.CONNECTION_STRING, {
+                method: "POST",
+                headers: {
+                    "Content-Type":
+                        "application/x-www-form-urlencoded; charset=UTF-8",
+                },
+                body: new URLSearchParams({
+                    client_id: this.connectionArgs.authorization.client_id,
+                    client_secret:
+                        this.connectionArgs.authorization.client_secret,
+                    grant_type: this.connectionArgs.authorization.grant_type,
+                }),
+            });
 
             if (response.status !== 200) {
-                const { error } = await response.json();
+                const result = (await response.json()) as { error: string };
+                const { error } = result;
 
                 switch (error) {
                     case "invalid_client":
@@ -413,18 +427,15 @@ export class Client {
 
         const url = new URL(path, this.connectionArgs.address);
 
-        const request = new Request(url, {
-            method: "GET",
-            headers: {
-                "Content-Type": "application/json",
-            },
-        });
+        const requestHeaders = {
+            "Content-Type": "application/json",
+        };
 
         try {
             const headers = this.getAuthorizationHeaders(
                 url,
-                request.method,
-                request.headers
+                "GET",
+                requestHeaders
             );
 
             const lastModified =
@@ -433,7 +444,10 @@ export class Client {
                 headers.append("If-Modified-Since", lastModified);
             }
 
-            const response = await fetch(request, { headers });
+            const response = await fetch(url, {
+                method: "GET",
+                headers,
+            });
 
             if (response.status === 503) {
                 return {

@@ -1,5 +1,5 @@
-import { APIResult, Client, TMErrors } from "./Client";
-import { MatchTuple } from "./Match";
+import { APIResult, Client, TMErrors } from "./Client.js";
+import { MatchTuple } from "./Match.js";
 import WebSocket from "ws";
 import EventEmitter from "events";
 
@@ -357,7 +357,20 @@ export class Fieldset extends EventEmitter implements FieldsetData {
                 });
 
                 socket.addEventListener("message", (event) => {
-                    const data = JSON.parse(event.data) as FieldsetEvent;
+                    let dataStr: string;
+                    if (typeof event.data === "string") {
+                        dataStr = event.data;
+                    } else if (Buffer.isBuffer(event.data)) {
+                        dataStr = event.data.toString("utf8");
+                    } else if (event.data instanceof ArrayBuffer) {
+                        dataStr = new TextDecoder().decode(event.data);
+                    } else {
+                        // Handle Buffer[] case
+                        dataStr = Buffer.concat(
+                            event.data as Buffer[]
+                        ).toString("utf8");
+                    }
+                    const data = JSON.parse(dataStr) as FieldsetEvent;
                     this.updateState(data);
                     this.emit(data.type, data);
                     this.emit("message", data);

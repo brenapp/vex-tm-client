@@ -1,17 +1,16 @@
-import { Client, MatchRound } from "vex-tm-client"
-import authorization from "./credentials.json"
+import { Client, MatchRound } from "vex-tm-client";
+import authorization from "./credentials.json";
 
 (async function () {
-
     const client = new Client({
         address: "http://192.168.1.63",
         authorization: {
             client_id: authorization.client_id,
             client_secret: authorization.client_secret,
             grant_type: "client_credentials",
-            expiration_date: authorization.expiration_date
+            expiration_date: authorization.expiration_date,
         },
-        clientAPIKey: authorization.client_api_key
+        clientAPIKey: "",
     });
 
     const result = await client.connect();
@@ -27,7 +26,6 @@ import authorization from "./credentials.json"
     }
 
     console.log(event);
-
 
     const divisions = await client.getDivisions();
     if (!divisions.success) {
@@ -79,10 +77,9 @@ import authorization from "./credentials.json"
         return;
     }
 
-    fieldset.on("matchStarted", event => console.log(event));
-    fieldset.on("matchStopped", event => console.log(event));
-    fieldset.on("fieldActivated", event => console.log(event));
-    fieldset.on("fieldMatchAssigned", event => console.log(event));
-    fieldset.on("audienceDisplayChanged", event => console.log(event));
-
+    fieldset.on("matchStarted", (event) => console.log(event));
+    fieldset.on("matchStopped", (event) => console.log(event));
+    fieldset.on("fieldActivated", (event) => console.log(event));
+    fieldset.on("fieldMatchAssigned", (event) => console.log(event));
+    fieldset.on("audienceDisplayChanged", (event) => console.log(event));
 })();
