@@ -3,7 +3,7 @@ export enum AgeGroup {
     MiddleSchool = "MIDDLE_SCHOOL",
     ElementarySchool = "ELEMENTARY_SCHOOL",
     College = "COLLEGE",
-};
+}
 
 export type Team = {
     number: string;

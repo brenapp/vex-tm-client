@@ -1,10 +1,9 @@
 import { Division, DivisionData } from "./Division";
 import { Fieldset, FieldsetData } from "./Fieldset";
 import { Team } from "./Team";
-import { createHmac, sign } from "crypto";
+import { createHmac } from "crypto";
 
 export enum TMErrors {
-
     // DWAB Authorization Server
     CredentialsExpired = "DWAB Third-Party Authorization Credentials have expired",
     CredentialsInvalid = "DWAB Third-Party Authorization Credentials are invalid",
@@ -20,7 +19,7 @@ export enum TMErrors {
     WebSocketInvalidURL = "Fieldset WebSocket URL is invalid",
     WebSocketError = "Fieldset WebSocket could not be established",
     WebSocketClosed = "Fieldset WebSocket is closed",
-};
+}
 
 export type RemoteAuthorizationArgs = {
     client_id: string;
@@ -44,35 +43,44 @@ export type BearerToken = {
     access_token: string;
     token_type: string;
     expires_in: number;
-}
-
-export type BearerResult = {
-    success: true;
-    token: BearerToken;
-} | {
-    success: false;
-    error: TMErrors.CredentialsError | TMErrors.CredentialsExpired | TMErrors.CredentialsInvalid;
-    error_details?: unknown;
 };
 
-export type ConnectionResult = {
-    success: true
-} | {
-    success: false;
-    origin: "bearer" | "connection";
-    error: TMErrors;
-    error_details?: unknown;
-}
+export type BearerResult =
+    | {
+          success: true;
+          token: BearerToken;
+      }
+    | {
+          success: false;
+          error:
+              | TMErrors.CredentialsError
+              | TMErrors.CredentialsExpired
+              | TMErrors.CredentialsInvalid;
+          error_details?: unknown;
+      };
 
-export type APIResult<T> = {
-    success: true;
-    data: T;
-    cached: boolean;
-} | {
-    success: false;
-    error: TMErrors;
-    error_details?: unknown;
-};
+export type ConnectionResult =
+    | {
+          success: true;
+      }
+    | {
+          success: false;
+          origin: "bearer" | "connection";
+          error: TMErrors;
+          error_details?: unknown;
+      };
+
+export type APIResult<T> =
+    | {
+          success: true;
+          data: T;
+          cached: boolean;
+      }
+    | {
+          success: false;
+          error: TMErrors;
+          error_details?: unknown;
+      };
 
 export type SkillsRanking = {
     rank: number;
@@ -94,7 +102,6 @@ export type EventInfo = {
  * Client connection to Tournament Manager
  **/
 export class Client {
-
     // Connection data
     public connectionArgs: ClientArgs;
 
@@ -112,24 +119,24 @@ export class Client {
     static CONNECTION_STRING = "https://auth.vextm.dwabtech.com/oauth2/token";
 
     /**
-     * Obtains the bearer token from the DWAB authorization server. This bearer token is required to 
-     * connect to the local Tournament Manager instance. 
-     * 
+     * Obtains the bearer token from the DWAB authorization server. This bearer token is required to
+     * connect to the local Tournament Manager instance.
+     *
      * @returns The bearer result, success is true if the token was obtained, false if there was an error
      **/
     async getBearer(): Promise<BearerResult> {
-
         if (this.connectionArgs.authorization.expiration_date < Date.now()) {
             return {
                 success: false,
-                error: TMErrors.CredentialsExpired
+                error: TMErrors.CredentialsExpired,
             };
         }
 
         const request = new Request(Client.CONNECTION_STRING, {
             method: "POST",
             headers: {
-                "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+                "Content-Type":
+                    "application/x-www-form-urlencoded; charset=UTF-8",
             },
             body: new URLSearchParams({
                 client_id: this.connectionArgs.authorization.client_id,
@@ -148,43 +155,43 @@ export class Client {
                     case "invalid_client":
                         return {
                             success: false,
-                            error: TMErrors.CredentialsInvalid
+                            error: TMErrors.CredentialsInvalid,
                         };
                     default:
                         return {
                             success: false,
-                            error: TMErrors.CredentialsError
+                            error: TMErrors.CredentialsError,
                         };
                 }
             }
 
-            const token = await response.json() as BearerToken;
+            const token = (await response.json()) as BearerToken;
 
             this.bearerToken = token;
             this.bearerExpiration = Date.now() + token.expires_in * 1000;
 
             return {
                 success: true,
-                token
+                token,
             };
-
         } catch (e) {
             return {
                 success: false,
                 error: TMErrors.CredentialsError,
-                error_details: e
+                error_details: e,
             };
-        };
-
-    };
+        }
+    }
 
     /**
      * Checks if the bearer token is valid
      * @returns true if the bearer token is valid, false otherwise
      **/
     bearerValid(): boolean {
-        return this.bearerExpiration !== null && this.bearerExpiration > Date.now();
-    };
+        return (
+            this.bearerExpiration !== null && this.bearerExpiration > Date.now()
+        );
+    }
 
     /**
      * Ensures that the bearer token is valid, if it is not, it will obtain a new one
@@ -192,37 +199,43 @@ export class Client {
      **/
     async ensureBearer(): Promise<BearerResult> {
         if (this.bearerValid()) {
-
-            if (this.bearerExpiration! - Date.now() < (this.connectionArgs.bearerMargin ?? 0)) {
+            if (
+                this.bearerExpiration! - Date.now() <
+                (this.connectionArgs.bearerMargin ?? 0)
+            ) {
                 return this.getBearer();
             }
 
             return Promise.resolve({
                 success: true,
-                token: this.bearerToken!
+                token: this.bearerToken!,
             });
         } else {
             return this.getBearer();
         }
-    };
+    }
 
     /**
      * Fetches the divisions from the local Tournament Manager instance
      * @returns The divisions, success is true if the divisions were obtained, false if there was an error
      **/
     async getDivisions(): Promise<APIResult<Division[]>> {
-        return this.get<{ divisions: DivisionData[] }>("/api/divisions").then(result => {
-            if (!result.success) {
-                return result;
+        return this.get<{ divisions: DivisionData[] }>("/api/divisions").then(
+            (result) => {
+                if (!result.success) {
+                    return result;
+                }
+
+                const data = result.data.divisions.map(
+                    (data) => new Division(this, data)
+                );
+
+                return {
+                    ...result,
+                    data,
+                };
             }
-
-            const data = result.data.divisions.map(data => new Division(this, data));
-
-            return {
-                ...result,
-                data
-            };
-        });
+        );
     }
 
     /**
@@ -230,33 +243,37 @@ export class Client {
      * @returns The fieldsets, success is true if the fieldsets were obtained, false if there was an error
      **/
     async getFieldsets(): Promise<APIResult<Fieldset[]>> {
-        return this.get<{ fieldSets: FieldsetData[] }>("/api/fieldsets").then(result => {
-            if (!result.success) {
-                return result;
+        return this.get<{ fieldSets: FieldsetData[] }>("/api/fieldsets").then(
+            (result) => {
+                if (!result.success) {
+                    return result;
+                }
+
+                const data = result.data.fieldSets.map(
+                    (data) => new Fieldset(this, data)
+                );
+
+                return {
+                    ...result,
+                    data,
+                };
             }
-
-            const data = result.data.fieldSets.map(data => new Fieldset(this, data));
-
-            return {
-                ...result,
-                data
-            };
-        });
-    };
+        );
+    }
 
     /**
      * Fetches teams in all divisions from the local Tournament Manager instance
      * @returns The teams, success is true if the teams were obtained, false if there was an error
      **/
     async getTeams(): Promise<APIResult<Team[]>> {
-        return this.get<{ teams: Team[] }>("/api/teams").then(result => {
+        return this.get<{ teams: Team[] }>("/api/teams").then((result) => {
             if (!result.success) {
                 return result;
             }
 
             return {
                 ...result,
-                data: result.data.teams
+                data: result.data.teams,
             };
         });
     }
@@ -266,13 +283,15 @@ export class Client {
      * @returns The skills rankings, success is true if the rankings were obtained, false if there was an error
      **/
     async getSkills(): Promise<APIResult<SkillsRanking[]>> {
-        return this.get<{ skillsRankings: SkillsRanking[] }>("/api/skills").then(result => {
+        return this.get<{ skillsRankings: SkillsRanking[] }>(
+            "/api/skills"
+        ).then((result) => {
             if (!result.success) {
                 return result;
             }
             return {
                 ...result,
-                data: result.data.skillsRankings
+                data: result.data.skillsRankings,
             };
         });
     }
@@ -282,29 +301,31 @@ export class Client {
      * @returns The event info, success is true if the info was obtained, false if there was an error
      **/
     async getEventInfo(): Promise<APIResult<EventInfo>> {
-        return this.get<{ event: EventInfo }>("/api/event").then(result => {
+        return this.get<{ event: EventInfo }>("/api/event").then((result) => {
             if (!result.success) {
                 return result;
             }
 
             return {
                 ...result,
-                data: result.data.event
+                data: result.data.event,
             };
         });
     }
 
-
     /**
      * Returns the headers needed to authorize the request with Tournament Manager
-     * 
+     *
      * @param url URL to be requested
      * @param method HTTP Method
      * @param init initial headers
      * @returns Headers object
      */
-    getAuthorizationHeaders(url: URL, method: string = "GET", init?: HeadersInit): Headers {
-
+    getAuthorizationHeaders(
+        url: URL,
+        method: string = "GET",
+        init?: HeadersInit
+    ): Headers {
         const tmDate = new Date().toUTCString();
 
         let stringToSign = [
@@ -312,7 +333,7 @@ export class Client {
             url.pathname + url.search,
             `token:${this.bearerToken?.access_token}`,
             `host:${url.host}`,
-            `x-tm-date:${tmDate}`
+            `x-tm-date:${tmDate}`,
         ].join("\n");
 
         stringToSign += "\n";
@@ -323,7 +344,10 @@ export class Client {
 
         const headers = new Headers(init);
 
-        headers.append("Authorization", `Bearer ${this.bearerToken?.access_token}`)
+        headers.append(
+            "Authorization",
+            `Bearer ${this.bearerToken?.access_token}`
+        );
         headers.append("x-tm-date", tmDate);
         headers.append("x-tm-signature", signature);
         headers.append("Host", url.host);
@@ -331,19 +355,17 @@ export class Client {
         return headers;
     }
 
-
     /**
      * Connects to the local Tournament Manager instance
      * @returns The connection result, success is true if the connection was established, false if there was an error
      **/
     async connect(): Promise<ConnectionResult> {
-
         const result = await this.ensureBearer();
         if (!result.success) {
             return {
                 success: false,
                 origin: "bearer",
-                error: result.error
+                error: result.error,
             };
         }
 
@@ -353,7 +375,7 @@ export class Client {
                 success: false,
                 origin: "connection",
                 error: divisionResult.error,
-                error_details: divisionResult.error_details
+                error_details: divisionResult.error_details,
             };
         }
 
@@ -363,19 +385,20 @@ export class Client {
                 success: false,
                 origin: "connection",
                 error: fieldsetResult.error,
-                error_details: fieldsetResult.error_details
+                error_details: fieldsetResult.error_details,
             };
         }
 
         return { success: true };
-    };
+    }
 
-    endpointCache: { [key: string]: { data: unknown, lastModified: string } } = {};
+    endpointCache: { [key: string]: { data: unknown; lastModified: string } } =
+        {};
 
     /**
      * Fetches data from the local Tournament Manager instance. Ensures that a bearer token is
      * valid, and respects Last-Modified headers.
-     *  
+     *
      * @param path endpoint to fetch from
      * @returns API Result with data if successful, error if not
      **/
@@ -384,7 +407,7 @@ export class Client {
         if (!result.success) {
             return {
                 success: false,
-                error: result.error
+                error: result.error,
             };
         }
 
@@ -393,14 +416,19 @@ export class Client {
         const request = new Request(url, {
             method: "GET",
             headers: {
-                "Content-Type": "application/json"
-            }
+                "Content-Type": "application/json",
+            },
         });
 
         try {
-            const headers = this.getAuthorizationHeaders(url, request.method, request.headers);
+            const headers = this.getAuthorizationHeaders(
+                url,
+                request.method,
+                request.headers
+            );
 
-            const lastModified = this.endpointCache[url.toString()]?.lastModified ?? undefined;
+            const lastModified =
+                this.endpointCache[url.toString()]?.lastModified ?? undefined;
             if (lastModified) {
                 headers.append("If-Modified-Since", lastModified);
             }
@@ -411,41 +439,40 @@ export class Client {
                 return {
                     success: false,
                     error: TMErrors.WebServerNotEnabled,
-                    error_details: await response.json()
-                }
+                    error_details: await response.json(),
+                };
             }
 
             if (response.status === 401) {
                 return {
                     success: false,
                     error: TMErrors.WebserverInvalidSignature,
-                    error_details: await response.json()
-                }
-            };
-
+                    error_details: await response.json(),
+                };
+            }
 
             if (response.status === 304) {
                 return {
                     success: true,
                     data: this.endpointCache[url.toString()].data as T,
-                    cached: true
+                    cached: true,
                 };
-            };
+            }
 
             if (response.status !== 200) {
                 return {
                     success: false,
                     error: TMErrors.WebServerError,
-                    error_details: await response.json()
+                    error_details: await response.json(),
                 };
             }
 
-            const data = await response.json() as T;
+            const data = (await response.json()) as T;
 
             if (response.headers.get("Last-Modified")) {
                 this.endpointCache[url.toString()] = {
                     data,
-                    lastModified: response.headers.get("Last-Modified") ?? ""
+                    lastModified: response.headers.get("Last-Modified") ?? "",
                 };
             }
 
@@ -454,9 +481,8 @@ export class Client {
             return {
                 success: false,
                 error: TMErrors.WebServerConnectionError,
-                error_details: e
+                error_details: e,
             };
         }
-    };
-
+    }
 }
