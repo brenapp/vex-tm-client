@@ -1,6 +1,7 @@
 import { APIResult, Client, TMErrors } from "./Client.js";
 import { MatchTuple } from "./Match.js";
 import EventEmitter from "node:events";
+import { WebSocket } from "ws";
 
 export type Field = {
     id: number;
