@@ -148,52 +148,68 @@ export class Client {
             };
         }
 
+        const response = await fetch(Client.CONNECTION_STRING, {
+            method: "POST",
+            headers: {
+                "Content-Type":
+                    "application/x-www-form-urlencoded; charset=UTF-8",
+            },
+            body: new URLSearchParams({
+                client_id: this.connectionArgs.authorization.client_id,
+                client_secret: this.connectionArgs.authorization.client_secret,
+                grant_type: this.connectionArgs.authorization.grant_type,
+            }),
+        });
+
+        if (response.status !== 200) {
+            const result = (await response.json()) as { error: string };
+            const { error } = result;
+
+            switch (error) {
+                case "invalid_client":
+                    return {
+                        success: false,
+                        error: TMErrors.CredentialsInvalid,
+                    };
+                default:
+                    return {
+                        success: false,
+                        error: TMErrors.CredentialsError,
+                    };
+            }
+        }
+
+        const token = (await response.json()) as BearerToken;
+
+        return {
+            success: true,
+            token,
+        };
+    }
+
+    /**
+     * Fetches a new bearer token, and saves off the token.
+     **/
+    async updateBearer(): Promise<BearerResult> {
         try {
-            const response = await fetch(Client.CONNECTION_STRING, {
-                method: "POST",
-                headers: {
-                    "Content-Type":
-                        "application/x-www-form-urlencoded; charset=UTF-8",
-                },
-                body: new URLSearchParams({
-                    client_id: this.connectionArgs.authorization.client_id,
-                    client_secret:
-                        this.connectionArgs.authorization.client_secret,
-                    grant_type: this.connectionArgs.authorization.grant_type,
-                }),
-            });
+            const bearer = await this.getBearer();
 
-            if (response.status !== 200) {
-                const result = (await response.json()) as { error: string };
-                const { error } = result;
-
-                switch (error) {
-                    case "invalid_client":
-                        return {
-                            success: false,
-                            error: TMErrors.CredentialsInvalid,
-                        };
-                    default:
-                        return {
-                            success: false,
-                            error: TMErrors.CredentialsError,
-                        };
-                }
+            if (!bearer.success) {
+                return bearer;
             }
 
-            const token = (await response.json()) as BearerToken;
-
-            this.bearerToken = token;
-            this.bearerExpiration = Date.now() + token.expires_in * 1000;
+            this.bearerToken = bearer.token;
+            this.bearerExpiration =
+                Date.now() + this.bearerToken.expires_in * 1000;
 
             return {
                 success: true,
-                token,
+                token: this.bearerToken,
             };
         } catch (e) {
             return {
-                success: false,
                 error: TMErrors.CredentialsError,
+                success: false,
                 error_details: e,
             };
         }
