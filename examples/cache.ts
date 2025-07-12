@@ -1,8 +1,5 @@
 import {
     Client,
-    FieldsetAudienceDisplay,
-    FieldsetQueueSkillsType,
-    MatchRound,
 } from "vex-tm-client";
 import authorization from "./credentials.json" with { type: "json" };
 
