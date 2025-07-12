@@ -1,6 +1,5 @@
 import { APIResult, Client, TMErrors } from "./Client.js";
 import { MatchTuple } from "./Match.js";
-import WebSocket from "ws";
 import EventEmitter from "events";
 
 export type Field = {
@@ -408,7 +407,9 @@ export class Fieldset extends EventEmitter implements FieldsetData {
                         error: TMErrors.WebSocketClosed,
                     });
                 } else {
-                    this.websocket.send(body, (error) => {
+                    try {
+                        this.websocket.send(body);
+                    } catch (error) {
                         if (error) {
                             resolve({
                                 success: false,
@@ -422,7 +423,7 @@ export class Fieldset extends EventEmitter implements FieldsetData {
                                 cached: false,
                             });
                         }
-                    });
+                    }
                 }
             });
         } catch (e) {

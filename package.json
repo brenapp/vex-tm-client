@@ -9,17 +9,10 @@
         "prepare": "npm run build",
         "build": "rimraf out && tsc && tsc -d"
     },
-    "dependencies": {
-        "@types/cheerio": "^0.22.16",
-        "@types/ws": "^8.5.10",
-        "node-fetch": "^3.3.2",
-        "protobufjs": "^7.2.4",
-        "ws": "^8.16.0"
-    },
     "typings": "out/main.d.ts",
     "version": "1.4.1",
     "devDependencies": {
-        "@types/node": "^20.9.4",
+        "@types/node": "^24.0.13",
         "rimraf": "^5.0.5",
         "typescript": "^5.3.0"
     }

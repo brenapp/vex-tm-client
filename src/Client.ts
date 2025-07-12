@@ -2,7 +2,7 @@ import { Division, DivisionData } from "./Division.js";
 import { Fieldset, FieldsetData } from "./Fieldset.js";
 import { Team } from "./Team.js";
 import { createHmac } from "crypto";
-import fetch, { Headers, HeadersInit } from "node-fetch";
+import type { HeadersInit } from "undici-types";
 
 export enum TMErrors {
     // DWAB Authorization Server
