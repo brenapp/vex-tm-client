@@ -4,7 +4,7 @@ import {
     FieldsetQueueSkillsType,
     MatchRound,
 } from "vex-tm-client";
-import authorization from "./credentials.json";
+import authorization from "./credentials.json" with { type: "json" };
 
 (async function () {
     const client = new Client({
@@ -15,7 +15,7 @@ import authorization from "./credentials.json";
             grant_type: "client_credentials",
             expiration_date: authorization.expiration_date,
         },
-        clientAPIKey: authorization.client_api_key,
+        clientAPIKey: authorization.clientAPIKey,
     });
 
     // Will only make one request to the server
