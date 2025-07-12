@@ -1,6 +1,6 @@
 import { APIResult, Client, TMErrors } from "./Client.js";
 import { MatchTuple } from "./Match.js";
-import EventEmitter from "events";
+import EventEmitter from "node:events";
 
 export type Field = {
     id: number;

@@ -1,7 +1,7 @@
 import { Division, DivisionData } from "./Division.js";
 import { Fieldset, FieldsetData } from "./Fieldset.js";
 import { Team } from "./Team.js";
-import { createHmac } from "crypto";
+import { createHmac } from "node:crypto";
 import type { HeadersInit } from "undici-types";
 
 export enum TMErrors {
