@@ -38,7 +38,7 @@ export type AuthorizationArgs =
           authorization: RemoteAuthorizationArgs;
       }
     | {
-          directAuthorization: ManualAuthorizationConfig;
+          manualAuthorization: ManualAuthorizationConfig;
       };
 
 export type ClientArgs = {
@@ -137,8 +137,8 @@ export class Client {
      * @returns The bearer result, success is true if the token was obtained, false if there was an error
      **/
     async getBearer(): Promise<BearerResult> {
-        if ("directAuthorization" in this.connectionArgs) {
-            return this.connectionArgs.directAuthorization.getBearer();
+        if ("manualAuthorization" in this.connectionArgs) {
+            return this.connectionArgs.manualAuthorization.getBearer();
         }
 
         if (this.connectionArgs.authorization.expiration_date < Date.now()) {
