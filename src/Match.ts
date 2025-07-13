@@ -23,8 +23,8 @@ export enum MatchRound {
 export type MatchAlliance = {
     teams: {
         number: string;
-    }[]
-}
+    }[];
+};
 
 export type MatchTuple<R extends MatchRound = MatchRound> = {
     session: number;
@@ -41,6 +41,11 @@ export type Match = {
         timeScheduled: number;
         state: MatchState;
         alliances: MatchAlliance[];
-        matchTuple: MatchTuple<Exclude<MatchRound, MatchRound.None | MatchRound.Skills | MatchRound.Timeout>>;
+        matchTuple: MatchTuple<
+            Exclude<
+                MatchRound,
+                MatchRound.None | MatchRound.Skills | MatchRound.Timeout
+            >
+        >;
     };
 };

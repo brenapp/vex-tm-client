@@ -1,25 +1,23 @@
 {
-  "deprecated": false,
-  "description": "Programmatic Control of VEX Tournament Manager",
-  "license": "MIT",
-  "main": "out/main.js",
-  "name": "vex-tm-client",
-  "scripts": {
-    "prepare": "npm run build",
-    "build": "rimraf out && tsc && tsc -d"
-  },
-  "dependencies": {
-    "@types/cheerio": "^0.22.16",
-    "@types/node-fetch": "^2.5.4",
-    "@types/ws": "^7.2.1",
-    "node-fetch": "^2.6.0",
-    "protobufjs": "^7.2.4",
-    "ws": "^7.2.1"
-  },
-  "typings": "out/main.d.ts",
-  "version": "1.4.1",
-  "devDependencies": {
-    "@types/node": "^20.9.4",
-    "rimraf": "^5.0.5"
-  }
+    "deprecated": false,
+    "description": "Programmatic Control of VEX Tournament Manager",
+    "license": "MIT",
+    "main": "out/main.js",
+    "type": "module",
+    "name": "vex-tm-client",
+    "scripts": {
+        "prepare": "npm run build",
+        "build": "rimraf out && tsc && tsc -d"
+    },
+    "typings": "out/main.d.ts",
+    "version": "1.4.1",
+    "devDependencies": {
+        "@types/node": "^24.0.13",
+        "@types/ws": "^8.18.1",
+        "rimraf": "^5.0.5",
+        "typescript": "^5.3.0"
+    },
+    "dependencies": {
+        "ws": "^8.18.3"
+    }
 }

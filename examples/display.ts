@@ -1,21 +1,20 @@
-import { Client, FieldsetAudienceDisplay, FieldsetQueueSkillsType } from "vex-tm-client";
-import authorization from "./credentials.json"
+import { Client, FieldsetAudienceDisplay } from "vex-tm-client";
+import authorization from "./credentials.json" with { type: "json" };
 
 function timeout(ms: number) {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 (async function () {
-
     const client = new Client({
         address: "http://localhost",
         authorization: {
             client_id: authorization.client_id,
             client_secret: authorization.client_secret,
             grant_type: "client_credentials",
-            expiration_date: authorization.expiration_date
+            expiration_date: authorization.expiration_date,
         },
-        clientAPIKey: authorization.client_api_key
+        clientAPIKey: authorization.clientAPIKey,
     });
 
     const event = await client.get("/api/event");
@@ -42,5 +41,4 @@ function timeout(ms: number) {
         await fieldset.setAudienceDisplay(mode);
         await timeout(2000);
     }
-
 })();

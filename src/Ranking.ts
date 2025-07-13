@@ -1,6 +1,6 @@
 export type RankAlliance = {
     name: string;
-    teams: { number: string; }[];
+    teams: { number: string }[];
 };
 
 export type Ranking = {
