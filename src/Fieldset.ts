@@ -1,4 +1,5 @@
-import { APIResult, Client, TMErrors } from "./Client.js";
+import type { APIResult, Client } from "./Client.js";
+import { TMErrors } from "./utils/TMErrors.js";
 import { MatchTuple } from "./Match.js";
 import EventEmitter from "node:events";
 import { WebSocket } from "ws";
@@ -181,7 +182,6 @@ export interface Fieldset {
 export class Fieldset extends EventEmitter implements FieldsetData {
     id: number;
     name: string;
-
     client: Client;
     websocket: WebSocket | null = null;
 
