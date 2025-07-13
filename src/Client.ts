@@ -230,21 +230,20 @@ export class Client {
      * @returns The bearer result, success is true if the token was obtained, false if there was an error
      **/
     async ensureBearer(): Promise<BearerResult> {
-        if (this.bearerValid()) {
-            if (
-                this.bearerExpiration! - Date.now() <
-                (this.connectionArgs.bearerMargin ?? 0)
-            ) {
-                return this.getBearer();
-            }
-
-            return Promise.resolve({
-                success: true,
-                token: this.bearerToken!,
-            });
-        } else {
-            return this.getBearer();
+        if (!this.bearerValid()) {
+            return this.updateBearer();
         }
+
+        // Update the bearer if we are within the margin
+        const margin = this.connectionArgs.bearerMargin ?? 0;
+        if (this.bearerExpiration! - Date.now() < margin) {
+            return this.updateBearer();
+        }
+
+        return Promise.resolve({
+            success: true,
+            token: this.bearerToken!,
+        });
     }
 
     /**
