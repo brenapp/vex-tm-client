@@ -3,7 +3,7 @@ import authorization from "./credentials.json" with { type: "json" };
 
 (async function () {
     const client = new Client({
-        address: "http://192.168.1.63",
+        address: "http://127.0.0.1",
         authorization: {
             client_id: authorization.client_id,
             client_secret: authorization.client_secret,
